@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "title": "AI时代资产蓝图",
+    "topic": "ai-asset",
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "imageStyle": "whiteboard",
+    "imageAspectRatio": "16:9",
+    "drawMode": "sketch_first",
+    "pipeline": {
+      "mode": "video_first",
+      "defaultSceneDuration": null
+    },
+    "camera": {
+      "enabled": true,
+      "maxZoom": 2.5,
+      "transitionMs": 800
+    },
+    "tts": {
+      "provider": "tencent",
+      "voice": 602005,
+      "speed": 1.1
+    },
+    "subtitle": {
+      "enabled": true,
+      "fontSize": 36
+    },
+    "transition": {
+      "type": "fade",
+      "durationFrames": 15
+    },
+    "animationEngine": "whiteboard"
+  },
+  "scenes": [
+    {
+      "id": "scene1",
+      "imagePrompt": "画面左侧一个火柴人坐在电脑前低头工作，头上冒汗珠；右上方一个巨大的闹钟时针飞速旋转；右下角散落几张纸币。各元素之间有明确的空白间隔。",
+      "voiceText": "还在单纯靠出卖劳动时间，来换取那点微薄的工资吗？",
+      "duration": null,
+      "textOverlay": null
+    },
+    {
+      "id": "scene2",
+      "imagePrompt": "画面中间一个简洁的大脑轮廓，脑内中心留白，线条干净。",
+      "voiceText": "停止做执行者，开始做拥有高阶判断力的决策者。",
+      "duration": null,
+      "textOverlay": {
+        "text": "判断",
+        "x": 960,
+        "y": 500,
+        "fontSize": 120,
+        "color": "#2D3748",
+        "style": "handwritten",
+        "drawAt": 0.7,
+        "duration": 1.5
+      }
+    },
+    {
+      "id": "scene3",
+      "imagePrompt": "一座金字塔结构图，底层是'执行'，中层是'管理'，顶层是'决策'，全白板风格。",
+      "voiceText": "从执行到管理再到决策，这是每一个职场人的进阶之路。",
+      "duration": null,
+      "textOverlay": null
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "fps": 30,
+  "totalFrames": 600,
+  "frameReference": "scene-relative",
+  "drawMode": "sketch_first",
+  "scenes": [
+    {
+      "id": "scene1",
+      "startFrame": 0,
+      "durationFrames": 300,
+      "elements": [
+        {
+          "id": "full",
+          "sketchAtFrame": 0,
+          "sketchDurationFrames": 120,
+          "colorizeAtFrame": 180,
+          "colorizeDurationFrames": 60,
+          "narration": "Welcome to this whiteboard video."
+        }
+      ]
+    },
+    {
+      "id": "scene2",
+      "startFrame": 300,
+      "durationFrames": 300,
+      "elements": [
+        {
+          "id": "full",
+          "sketchAtFrame": 0,
+          "sketchDurationFrames": 120,
+          "colorizeAtFrame": 180,
+          "colorizeDurationFrames": 60,
+          "narration": "This is a demonstration."
+        }
+      ]
+    }
+  ]
+}
