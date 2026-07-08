@@ -1,0 +1,43 @@
+# ====================================================
+# video-template skill gitignore
+# 设计原则：
+#   - 随 skill 分发：bgm.mp3（必备）、canonical 示例（LightclawaceVideo 的资产）
+#   - 不分发：node_modules（npm install 即可）、历史视频产物、TTS 密钥
+# ====================================================
+
+# Node 依赖（远程 npm install 重建）
+remotion-project/node_modules/
+
+# 渲染输出（用户产物，不应入 skill）
+remotion-project/out/
+out/
+
+# macOS 副产物
+.DS_Store
+**/.DS_Store
+
+# 敏感信息
+.env
+*.env.local
+
+# Python 缓存
+__pycache__/
+*.pyc
+scripts/__pycache__/
+
+# 日志
+*.log
+
+# 历史视频的音频和 svg（每个视频生成时会 mkdir public/{audio,assets}/{topic}/）
+# 只有 bgm.mp3、canonical 示例封面、canonical SVG 会随 skill 分发
+remotion-project/public/audio/*
+remotion-project/public/assets/*
+
+# 白名单：必须随 skill 分发的 public 资源
+!remotion-project/public/bgm.mp3
+!remotion-project/public/audio/lightclawace/
+!remotion-project/public/assets/lightclawace/
+!remotion-project/public/assets/cover_lightclawace.png
+
+# 用户工作目录 output
+output/

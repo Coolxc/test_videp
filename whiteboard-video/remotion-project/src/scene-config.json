@@ -1,0 +1,708 @@
+{
+  "meta": {
+    "title": "2026 AI视频软件排名",
+    "fps": 30,
+    "width": 1080,
+    "height": 1920,
+    "pad": 0.3,
+    "cover": "cover.png",
+    "coverDuration": 0.5,
+    "ttsProvider": "tencent",
+    "topic": "ai-video-ranking"
+  },
+  "scenes": [
+    {
+      "id": "scene1",
+      "title": "开场定调",
+      "audio": "audio/ai-video-ranking/scene1.wav",
+      "duration": 16.4,
+      "subtitles": [
+        {
+          "text": "2026年了, AI生成视频到底哪家强?"
+        },
+        {
+          "text": "我不是来念参数的, 参数你自己去官网看."
+        },
+        {
+          "text": "这些软件我从去年就开始用, 今天只说实际体验."
+        },
+        {
+          "text": "国产到底能不能打? 便宜好不好用?"
+        },
+        {
+          "text": "答案可能出乎你意料. 先剧透: 有几款国产真的把国外按在地上摩擦了."
+        }
+      ],
+      "elements": [
+        {
+          "type": "title",
+          "content": "AI视频软件排名",
+          "row": 0,
+          "trigger": 0,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "10款软件",
+          "color": "pink",
+          "row": 1,
+          "trigger": 2,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "实测体验",
+          "color": "blue",
+          "row": 1,
+          "trigger": 2,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "只说体验",
+          "color": "yellow",
+          "row": 2,
+          "trigger": 2,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "国产能打?",
+          "color": "pink",
+          "row": 3,
+          "trigger": 3,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "出乎意料",
+          "color": "pink",
+          "row": 4,
+          "trigger": 4,
+          "animation": "pop"
+        }
+      ]
+    },
+    {
+      "id": "scene2",
+      "title": "海螺AI",
+      "audio": "audio/ai-video-ranking/scene2.wav",
+      "duration": 16.2,
+      "subtitles": [
+        {
+          "text": "海螺AI, 国内打戏天花板没有之一."
+        },
+        {
+          "text": "武侠跑酷这类需要肢体协调的画面, 它做到了全球第一梯队."
+        },
+        {
+          "text": "生成的人物动作流畅不僵硬, 这一点很多国外软件都做不到."
+        },
+        {
+          "text": "缺点是目前不支持音频生成, 需要后期配音."
+        },
+        {
+          "text": "动作类视频首选, 人上人."
+        }
+      ],
+      "elements": [
+        {
+          "type": "image",
+          "src": "assets/ai-video-ranking/logos/hailuo.png",
+          "row": 0,
+          "trigger": 0,
+          "animation": "pop",
+          "scale": 0.8
+        },
+        {
+          "type": "title",
+          "content": "海螺AI",
+          "row": 1,
+          "trigger": 0,
+          "animation": "fade"
+        },
+        {
+          "type": "box",
+          "content": "打戏天花板",
+          "color": "pink",
+          "row": 2,
+          "trigger": 0,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "肢体协调",
+          "color": "blue",
+          "row": 3,
+          "trigger": 1,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "全球第一梯队",
+          "color": "blue",
+          "row": 3,
+          "trigger": 1,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "无音频",
+          "color": "dark",
+          "row": 4,
+          "trigger": 3,
+          "animation": "pop"
+        },
+        {
+          "type": "stamp",
+          "content": "人上人",
+          "row": 5,
+          "trigger": 4,
+          "animation": "stampIn",
+          "scale": 1.0
+        }
+      ]
+    },
+    {
+      "id": "scene3",
+      "title": "可灵",
+      "audio": "audio/ai-video-ranking/scene3.wav",
+      "duration": 16.7,
+      "subtitles": [
+        {
+          "text": "可灵, 国产老大哥, 核心优势就两个字: 时长."
+        },
+        {
+          "text": "别人还在卷5秒10秒, 它直接出2分钟连贯视频."
+        },
+        {
+          "text": "3.0版本加了人物一致性功能, 做连续剧情简直是神器."
+        },
+        {
+          "text": "做漫剧做短剧, 选可灵不会错, 画面细腻度也在线."
+        },
+        {
+          "text": "顶级."
+        }
+      ],
+      "elements": [
+        {
+          "type": "image",
+          "src": "assets/ai-video-ranking/logos/keling.png",
+          "row": 0,
+          "trigger": 0,
+          "animation": "pop",
+          "scale": 0.8
+        },
+        {
+          "type": "title",
+          "content": "可灵",
+          "row": 1,
+          "trigger": 0,
+          "animation": "fade"
+        },
+        {
+          "type": "box",
+          "content": "2分钟连贯",
+          "color": "blue",
+          "row": 2,
+          "trigger": 1,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "人物一致性",
+          "color": "pink",
+          "row": 3,
+          "trigger": 2,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "漫剧神器",
+          "color": "yellow",
+          "row": 3,
+          "trigger": 2,
+          "animation": "pop"
+        },
+        {
+          "type": "stamp",
+          "content": "顶级",
+          "row": 4,
+          "trigger": 4,
+          "animation": "stampIn",
+          "scale": 1.0
+        }
+      ]
+    },
+    {
+      "id": "scene4",
+      "title": "即梦",
+      "audio": "audio/ai-video-ranking/scene4.wav",
+      "duration": 12.3,
+      "subtitles": [
+        {
+          "text": "即梦, 2.0版本一发布就是王炸."
+        },
+        {
+          "text": "电影感镜头, 多场景调度, 台词表现, 综合能力是当前AI视频里最强的."
+        },
+        {
+          "text": "但生成速度慢是个硬伤, 人脸也有限制."
+        },
+        {
+          "text": "不过瑕不掩瑜, 如果你追求画面质感, 即梦值得等."
+        },
+        {
+          "text": "夯."
+        }
+      ],
+      "elements": [
+        {
+          "type": "image",
+          "src": "assets/ai-video-ranking/logos/jimeng.png",
+          "row": 0,
+          "trigger": 0,
+          "animation": "pop",
+          "scale": 0.8
+        },
+        {
+          "type": "title",
+          "content": "即梦",
+          "row": 1,
+          "trigger": 0,
+          "animation": "fade"
+        },
+        {
+          "type": "box",
+          "content": "电影感",
+          "color": "yellow",
+          "row": 2,
+          "trigger": 1,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "综合最强",
+          "color": "pink",
+          "row": 2,
+          "trigger": 1,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "生成慢",
+          "color": "dark",
+          "row": 3,
+          "trigger": 2,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "限制人脸",
+          "color": "dark",
+          "row": 3,
+          "trigger": 2,
+          "animation": "pop"
+        },
+        {
+          "type": "stamp",
+          "content": "夯",
+          "row": 4,
+          "trigger": 4,
+          "animation": "stampIn",
+          "scale": 1.0
+        }
+      ]
+    },
+    {
+      "id": "scene5",
+      "title": "Vidu + 通义万象",
+      "audio": "audio/ai-video-ranking/scene5.wav",
+      "duration": 20.1,
+      "subtitles": [
+        {
+          "text": "Vidu走的是快准狠路线."
+        },
+        {
+          "text": "最近打斗画面更新很惊艳, 节奏感拉满."
+        },
+        {
+          "text": "画质不如可灵即梦细腻, 但出片速度是真快不墨迹."
+        },
+        {
+          "text": "人上人. 通义万象就比较尴尬了."
+        },
+        {
+          "text": "千问热度那么高, 万象几乎没声量, 功能单一."
+        },
+        {
+          "text": "2.6版虽然提升了, 但我用得确实少, 期待阿里重视起来吧. NPC."
+        }
+      ],
+      "elements": [
+        {
+          "type": "image",
+          "src": "assets/ai-video-ranking/logos/vidu.png",
+          "row": 0,
+          "trigger": 0,
+          "animation": "pop",
+          "scale": 0.7
+        },
+        {
+          "type": "title",
+          "content": "Vidu",
+          "row": 1,
+          "trigger": 0,
+          "animation": "fade"
+        },
+        {
+          "type": "box",
+          "content": "快准狠",
+          "color": "pink",
+          "row": 2,
+          "trigger": 0,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "出片快",
+          "color": "blue",
+          "row": 2,
+          "trigger": 2,
+          "animation": "pop"
+        },
+        {
+          "type": "stamp",
+          "content": "人上人",
+          "row": 3,
+          "trigger": 3,
+          "animation": "stampIn",
+          "scale": 1.0
+        },
+        {
+          "type": "image",
+          "src": "assets/ai-video-ranking/logos/tongyi.png",
+          "row": 4,
+          "trigger": 3,
+          "animation": "pop",
+          "scale": 0.7
+        },
+        {
+          "type": "title",
+          "content": "通义万象",
+          "row": 5,
+          "trigger": 3,
+          "animation": "fade"
+        },
+        {
+          "type": "box",
+          "content": "功能单一",
+          "color": "dark",
+          "row": 6,
+          "trigger": 4,
+          "animation": "pop"
+        },
+        {
+          "type": "stamp",
+          "content": "NPC",
+          "row": 7,
+          "trigger": 5,
+          "animation": "stampIn",
+          "scale": 1.0
+        }
+      ]
+    },
+    {
+      "id": "scene6",
+      "title": "拍我AI",
+      "audio": "audio/ai-video-ranking/scene6.wav",
+      "duration": 13.4,
+      "subtitles": [
+        {
+          "text": "拍我AI, 小众但好用."
+        },
+        {
+          "text": "积分便宜, 生成速度快, 光这两点就赢了很多人."
+        },
+        {
+          "text": "V6版本号称对标Sora, 实测差一点, 但作为平替已经很不错了."
+        },
+        {
+          "text": "预算有限又想出片快的, 试试它. 人上人."
+        }
+      ],
+      "elements": [
+        {
+          "type": "image",
+          "src": "assets/ai-video-ranking/logos/paiwo.png",
+          "row": 0,
+          "trigger": 0,
+          "animation": "pop",
+          "scale": 0.8
+        },
+        {
+          "type": "title",
+          "content": "拍我AI",
+          "row": 1,
+          "trigger": 0,
+          "animation": "fade"
+        },
+        {
+          "type": "box",
+          "content": "便宜+快",
+          "color": "blue",
+          "row": 2,
+          "trigger": 1,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "Sora平替",
+          "color": "yellow",
+          "row": 3,
+          "trigger": 2,
+          "animation": "pop"
+        },
+        {
+          "type": "stamp",
+          "content": "人上人",
+          "row": 4,
+          "trigger": 3,
+          "animation": "stampIn",
+          "scale": 1.0
+        }
+      ]
+    },
+    {
+      "id": "scene7",
+      "title": "Sora 2 + Stable Diffusion",
+      "audio": "audio/ai-video-ranking/scene7.wav",
+      "duration": 19.6,
+      "subtitles": [
+        {
+          "text": "国外组先看Sora 2, 真实感的绝对标杆."
+        },
+        {
+          "text": "复杂场景叙事能力光影效果都是顶级, 物理运动还原度目前没有对手."
+        },
+        {
+          "text": "可惜已下架, 想用只能找第三方API."
+        },
+        {
+          "text": "夯, 没争议."
+        },
+        {
+          "text": "Stable Diffusion, 可控性极强, 开源插件丰富."
+        },
+        {
+          "text": "但配置要求高上手难, 纯硬核玩家专属. NPC."
+        }
+      ],
+      "elements": [
+        {
+          "type": "image",
+          "src": "assets/ai-video-ranking/logos/sora.png",
+          "row": 0,
+          "trigger": 0,
+          "animation": "pop",
+          "scale": 0.7
+        },
+        {
+          "type": "title",
+          "content": "Sora 2",
+          "row": 1,
+          "trigger": 0,
+          "animation": "fade"
+        },
+        {
+          "type": "box",
+          "content": "真实感标杆",
+          "color": "pink",
+          "row": 2,
+          "trigger": 0,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "物理运动最强",
+          "color": "blue",
+          "row": 2,
+          "trigger": 1,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "已下架",
+          "color": "dark",
+          "row": 3,
+          "trigger": 2,
+          "animation": "pop"
+        },
+        {
+          "type": "stamp",
+          "content": "夯",
+          "row": 3,
+          "trigger": 3,
+          "animation": "stampIn",
+          "scale": 1.2
+        },
+        {
+          "type": "image",
+          "src": "assets/ai-video-ranking/logos/sd.png",
+          "row": 4,
+          "trigger": 4,
+          "animation": "pop",
+          "scale": 0.7
+        },
+        {
+          "type": "title",
+          "content": "SD",
+          "row": 5,
+          "trigger": 4,
+          "animation": "fade"
+        },
+        {
+          "type": "box",
+          "content": "硬核专属",
+          "color": "dark",
+          "row": 6,
+          "trigger": 5,
+          "animation": "pop"
+        },
+        {
+          "type": "stamp",
+          "content": "NPC",
+          "row": 6,
+          "trigger": 5,
+          "animation": "stampIn",
+          "scale": 1.0
+        }
+      ]
+    },
+    {
+      "id": "scene8",
+      "title": "Runway + Veo 3 + 总结",
+      "audio": "audio/ai-video-ranking/scene8.wav",
+      "duration": 36.3,
+      "subtitles": [
+        {
+          "text": "Runway, 国外最火的AI视频软件, 卖点是精准可控."
+        },
+        {
+          "text": "运镜调节做到像素级, 但界面复杂新手劝退."
+        },
+        {
+          "text": "人上人."
+        },
+        {
+          "text": "Veo 3, 谷歌出品."
+        },
+        {
+          "text": "虽然没到Gemini生图的统治力, 但视频效果确实惊艳."
+        },
+        {
+          "text": "关键还便宜, Pro会员就能用, 国外软件里体验最好的."
+        },
+        {
+          "text": "顶级."
+        },
+        {
+          "text": "回顾一下, 夯两款: Sora 2和即梦."
+        },
+        {
+          "text": "顶级两款: 可灵和Veo 3."
+        },
+        {
+          "text": "人上人四款: 海螺, Vidu, 拍我AI, Runway."
+        },
+        {
+          "text": "NPC两款: 通义万象和SD."
+        },
+        {
+          "text": "选软件没有标准答案, 适合你需求的才是最好的."
+        }
+      ],
+      "elements": [
+        {
+          "type": "image",
+          "src": "assets/ai-video-ranking/logos/runway.png",
+          "row": 0,
+          "trigger": 0,
+          "animation": "pop",
+          "scale": 0.7
+        },
+        {
+          "type": "title",
+          "content": "Runway",
+          "row": 1,
+          "trigger": 0,
+          "animation": "fade"
+        },
+        {
+          "type": "box",
+          "content": "精准可控",
+          "color": "blue",
+          "row": 2,
+          "trigger": 0,
+          "animation": "pop"
+        },
+        {
+          "type": "box",
+          "content": "新手劝退",
+          "color": "dark",
+          "row": 2,
+          "trigger": 1,
+          "animation": "pop"
+        },
+        {
+          "type": "stamp",
+          "content": "人上人",
+          "row": 3,
+          "trigger": 2,
+          "animation": "stampIn",
+          "scale": 1.0
+        },
+        {
+          "type": "image",
+          "src": "assets/ai-video-ranking/logos/veo3.png",
+          "row": 4,
+          "trigger": 2,
+          "animation": "pop",
+          "scale": 0.7
+        },
+        {
+          "type": "title",
+          "content": "Veo 3",
+          "row": 5,
+          "trigger": 2,
+          "animation": "fade"
+        },
+        {
+          "type": "box",
+          "content": "惊艳+便宜",
+          "color": "yellow",
+          "row": 6,
+          "trigger": 3,
+          "animation": "pop"
+        },
+        {
+          "type": "stamp",
+          "content": "顶级",
+          "row": 6,
+          "trigger": 5,
+          "animation": "stampIn",
+          "scale": 1.0
+        },
+        {
+          "type": "svg",
+          "src": "assets/ai-video-ranking/ranking-summary.svg",
+          "row": 7,
+          "trigger": 6,
+          "animation": "pop",
+          "scale": 3.0
+        }
+      ]
+    }
+  ]
+}

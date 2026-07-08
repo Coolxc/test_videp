@@ -1,0 +1,22 @@
+{
+  "name": "whiteboard-video",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npx remotion studio",
+    "build": "npx remotion render src/index.ts Prototype --output out/prototype.mp4",
+    "still": "npx remotion still src/index.ts Prototype --output out/prototype.png --frame 0"
+  },
+  "dependencies": {
+    "@fontsource/zcool-kuaile": "^5.2.8",
+    "@remotion/cli": "4.0.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "remotion": "4.0.0",
+    "roughjs": "^4.6.6"
+  },
+  "devDependencies": {
+    "@types/react": "^18",
+    "typescript": "^5"
+  }
+}

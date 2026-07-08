@@ -1,0 +1,6 @@
+# Python dependencies for whiteboard-video skill
+# Install: pip install -r requirements.txt
+# Required for scripts/tts_tencent.py and scripts/tts_batch.py
+
+tencentcloud-sdk-python>=3.0.1000
+python-dotenv>=1.0.0

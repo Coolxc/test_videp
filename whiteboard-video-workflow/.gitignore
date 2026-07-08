@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+.env
+.ipynb_checkpoints
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project Assets (Large or temp files)
+output/
+tmp/
+*.mp4
+*.mp3
+*.wav
+!assets/audio/*.wav # Keep default assets if wanted, but exclude generated ones
+image_gen/
+storyboard/
+
+# Secrets
+.api_key
+*.key
+credentials.json

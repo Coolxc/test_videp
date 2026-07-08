@@ -1,0 +1,90 @@
+{
+  "fps": 30,
+  "width": 1080,
+  "height": 1920,
+  "cover": {
+    "startFrame": 0,
+    "endFrame": 15,
+    "durationFrames": 15,
+    "duration": 0.5
+  },
+  "coverStartFrame": 0,
+  "coverEndFrame": 15,
+  "coverDuration": 0.5,
+  "totalFrames": 4608,
+  "totalDuration": 153.6,
+  "scenes": [
+    {
+      "id": "scene1",
+      "startFrame": 15,
+      "endFrame": 507,
+      "nextStartFrame": 516,
+      "startSec": 0.5,
+      "endSec": 16.9,
+      "duration": 16.4
+    },
+    {
+      "id": "scene2",
+      "startFrame": 516,
+      "endFrame": 1002,
+      "nextStartFrame": 1011,
+      "startSec": 17.2,
+      "endSec": 33.4,
+      "duration": 16.2
+    },
+    {
+      "id": "scene3",
+      "startFrame": 1011,
+      "endFrame": 1512,
+      "nextStartFrame": 1521,
+      "startSec": 33.7,
+      "endSec": 50.4,
+      "duration": 16.7
+    },
+    {
+      "id": "scene4",
+      "startFrame": 1521,
+      "endFrame": 1890,
+      "nextStartFrame": 1899,
+      "startSec": 50.7,
+      "endSec": 63.0,
+      "duration": 12.3
+    },
+    {
+      "id": "scene5",
+      "startFrame": 1899,
+      "endFrame": 2502,
+      "nextStartFrame": 2511,
+      "startSec": 63.3,
+      "endSec": 83.4,
+      "duration": 20.1
+    },
+    {
+      "id": "scene6",
+      "startFrame": 2511,
+      "endFrame": 2913,
+      "nextStartFrame": 2922,
+      "startSec": 83.7,
+      "endSec": 97.1,
+      "duration": 13.4
+    },
+    {
+      "id": "scene7",
+      "startFrame": 2922,
+      "endFrame": 3510,
+      "nextStartFrame": 3519,
+      "startSec": 97.4,
+      "endSec": 117.0,
+      "duration": 19.6
+    },
+    {
+      "id": "scene8",
+      "startFrame": 3519,
+      "endFrame": 4608,
+      "nextStartFrame": 4608,
+      "startSec": 117.3,
+      "endSec": 153.6,
+      "duration": 36.3
+    }
+  ]
+}
