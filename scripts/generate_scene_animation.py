@@ -20,19 +20,20 @@ import json
 import os
 import sys
 import time
-from pathlib import Path
 
 import cv2
 import numpy as np
+from config import ENGINE_SCRIPTS_DIR, validate_engine
 
 
 # ── Path setup: import from whiteboard-animation engine ──
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_ENGINE_DIR = _PROJECT_ROOT / "whiteboard-video-workflow" / "whiteboard-animation"
-sys.path.insert(0, str(_ENGINE_DIR / "scripts"))
+sys.path.insert(0, str(ENGINE_SCRIPTS_DIR))
 
-assert _ENGINE_DIR.exists(), f"Animation engine not found at {_ENGINE_DIR}"
-assert (_ENGINE_DIR / "assets" / "drawing-hand.png").exists(), "Hand asset missing"
+engine_errors = validate_engine()
+if engine_errors:
+    for e in engine_errors:
+        print(f"  [ERR] {e}")
+    raise RuntimeError("Animation engine validation failed. Run validate.py for details.")
 
 from generate_whiteboard import (
     preprocess_image, preprocess_hand_image, split_image_into_cells,
@@ -321,18 +322,24 @@ def ensure_path_coherence(cells, threshold=3.0):
     return reorder_nearest_neighbor(cells)
 
 
-def filter_draw_order_for_bbox(full_draw_order, scaled_bbox):
-    """Filter the global draw order to cells within a bounding box."""
-    x_min = scaled_bbox["x"] // SPLIT_LEN
-    y_min = scaled_bbox["y"] // SPLIT_LEN
-    x_max = (scaled_bbox["x"] + scaled_bbox["w"]) // SPLIT_LEN
-    y_max = (scaled_bbox["y"] + scaled_bbox["h"]) // SPLIT_LEN
+def filter_draw_order_for_bbox(full_draw_order, scaled_bbox, padding_ratio=0.10):
+    """Filter draw order to cells within a bounding box, with padding to prevent edge truncation.
 
-    filtered = [
+    padding_ratio: bbox 尺寸的百分比作为额外边距，默认 10%。
+    最小 padding 为 2 个 grid cell（20px at SPLIT_LEN=10）。
+    """
+    pad_x = max(2, int(scaled_bbox["w"] * padding_ratio / SPLIT_LEN))
+    pad_y = max(2, int(scaled_bbox["h"] * padding_ratio / SPLIT_LEN))
+
+    x_min = max(0, scaled_bbox["x"] // SPLIT_LEN - pad_x)
+    y_min = max(0, scaled_bbox["y"] // SPLIT_LEN - pad_y)
+    x_max = (scaled_bbox["x"] + scaled_bbox["w"]) // SPLIT_LEN + pad_x
+    y_max = (scaled_bbox["y"] + scaled_bbox["h"]) // SPLIT_LEN + pad_y
+
+    return [
         cell for cell in full_draw_order
         if y_min <= cell[0] <= y_max and x_min <= cell[1] <= x_max
     ]
-    return filtered
 
 
 # ── Ken Burns hold ──

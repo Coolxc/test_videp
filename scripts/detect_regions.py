@@ -16,11 +16,59 @@ import cv2
 import numpy as np
 
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from config import PROJECT_ROOT
+
+
+def detect_full_content_bbox(image_path: str, bg_color_bgr=(227, 241, 246),
+                              tolerance: int = 35, margin: int = 10) -> dict:
+    """检测整图中所有非背景内容的最紧包围框。
+    作为 bbox 预估失败时的 fallback。
+    """
+    img = cv2.imread(image_path)
+    if img is None:
+        return {"x": 0, "y": 0, "w": 0, "h": 0}
+    h, w = img.shape[:2]
+
+    # 用自适应阈值（与引擎一致）检测内容
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    thresh = cv2.adaptiveThreshold(
+        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 10
+    )
+
+    # 反转（内容为白色）
+    content_mask = 255 - thresh
+
+    # 也加入颜色差异检测（补充阈值方法的盲区）
+    bg = np.array(bg_color_bgr, dtype=np.float32)
+    diff = np.linalg.norm(img.astype(np.float32) - bg, axis=2)
+    color_mask = (diff > tolerance * 3).astype(np.uint8) * 255
+
+    # 合并两种检测
+    combined = cv2.bitwise_or(content_mask, color_mask)
+
+    # 形态学操作：去噪 + 连接
+    kernel = np.ones((5, 5), np.uint8)
+    combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel)
+    combined = cv2.morphologyEx(combined, cv2.MORPH_OPEN, kernel)
+
+    # 查找包围框
+    coords = cv2.findNonZero(combined)
+    if coords is None:
+        return {"x": 0, "y": 0, "w": w, "h": h}
+
+    x, y, bw, bh = cv2.boundingRect(coords)
+
+    # 加 margin
+    x = max(0, x - margin)
+    y = max(0, y - margin)
+    bw = min(w - x, bw + 2 * margin)
+    bh = min(h - y, bh + 2 * margin)
+
+    return {"x": x, "y": y, "w": bw, "h": bh}
 
 
 def detect_regions(image_path: str, min_area_ratio: float = 0.01,
-                   margin: int = 15, merge_distance: int = 50) -> list[dict]:
+                   margin: int = 25, merge_distance: int = 80) -> list[dict]:
     """
     Detect distinct visual regions in an image using contour + connected components.
 
@@ -50,9 +98,18 @@ def detect_regions(image_path: str, min_area_ratio: float = 0.01,
     # Edge detection
     edges = cv2.Canny(gray, 30, 100)
 
+    # Complement with adaptive threshold (same as animation engine)
+    thresh = cv2.adaptiveThreshold(
+        gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 15, 10
+    )
+    content_mask = 255 - thresh
+
+    # Merge Canny edges + adaptive threshold content
+    combined_edges = cv2.bitwise_or(edges, content_mask)
+
     # Dilate to close gaps
     kernel = np.ones((5, 5), np.uint8)
-    dilated = cv2.dilate(edges, kernel, iterations=2)
+    dilated = cv2.dilate(combined_edges, kernel, iterations=2)
 
     # Find contours
     contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -178,6 +235,7 @@ if __name__ == "__main__":
     parser.add_argument("image", help="Path to scene image")
     parser.add_argument("--output-dir", "-o", help="Output directory for preview + JSON")
     parser.add_argument("--min-area", type=float, default=0.01, help="Minimum region area ratio (default: 0.01)")
+    parser.add_argument("--full-bbox", action="store_true", help="Only detect full content bbox")
     args = parser.parse_args()
 
     output_dir = args.output_dir or os.path.dirname(args.image)
@@ -185,19 +243,27 @@ if __name__ == "__main__":
 
     base = os.path.splitext(os.path.basename(args.image))[0]
 
-    regions = detect_regions(args.image, min_area_ratio=args.min_area)
+    if args.full_bbox:
+        bbox = detect_full_content_bbox(args.image)
+        print(f"\n  Full content bbox: ({bbox['x']}, {bbox['y']}) {bbox['w']}x{bbox['h']}")
+        json_path = os.path.join(output_dir, f"{base}_full_bbox.json")
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(bbox, f, ensure_ascii=False, indent=2)
+        print(f"  Saved: {json_path}")
+    else:
+        regions = detect_regions(args.image, min_area_ratio=args.min_area)
 
-    # Save JSON
-    json_path = os.path.join(output_dir, f"{base}_regions.json")
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(regions, f, ensure_ascii=False, indent=2)
-    print(f"  Regions JSON: {json_path}")
+        # Save JSON
+        json_path = os.path.join(output_dir, f"{base}_regions.json")
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(regions, f, ensure_ascii=False, indent=2)
+        print(f"  Regions JSON: {json_path}")
 
-    # Generate preview
-    preview_path = os.path.join(output_dir, f"regions_preview.png")
-    generate_preview(args.image, regions, preview_path)
+        # Generate preview
+        preview_path = os.path.join(output_dir, f"regions_preview.png")
+        generate_preview(args.image, regions, preview_path)
 
-    print(f"\n  Detected {len(regions)} regions")
-    for r in regions:
-        b = r["bbox"]
-        print(f"    {r['id']}: ({b['x']}, {b['y']}) {b['w']}x{b['h']}")
+        print(f"\n  Detected {len(regions)} regions")
+        for r in regions:
+            b = r["bbox"]
+            print(f"    {r['id']}: ({b['x']}, {b['y']}) {b['w']}x{b['h']}")

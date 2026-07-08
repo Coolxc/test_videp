@@ -139,7 +139,7 @@ def compute_timeline_entry(scene: dict, scene_start_frame: int,
             colorize_start = (
                 sum(e["durationMs"] for e in elem_durations) *
                 SKETCH_PHASE_WEIGHT / (SKETCH_PHASE_WEIGHT + COLOR_PHASE_WEIGHT)
-                + 1.5 * transition_ms * 1.5
+                + 1.5 * transition_ms
             )
             colorize_start_frames = round(colorize_start * anim_fps / 1000)
 
@@ -168,9 +168,9 @@ def compute_timeline_entry(scene: dict, scene_start_frame: int,
 
             element_timelines.append({
                 "id": elem["id"],
-                "sketchAtFrame": round(current_time * anim_fps / 1000),
+                "sketchAtFrame": round(current_time * anim_fps),
                 "sketchDurationFrames": sketch_frames,
-                "colorizeAtFrame": round((current_time + sketch_frames / anim_fps) * anim_fps / 1000),
+                "colorizeAtFrame": round(current_time * anim_fps + sketch_frames),
                 "colorizeDurationFrames": color_frames,
                 "narration": elem["narration"],
             })

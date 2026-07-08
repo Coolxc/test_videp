@@ -11,8 +11,7 @@ import os
 import sys
 from pathlib import Path
 
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from config import PROJECT_ROOT, get_image_filename
 
 
 def auto_generate_single_element(scene: dict, img_w: int = 1920, img_h: int = 1080) -> dict:
@@ -57,6 +56,8 @@ def parse_storyboard(input_path: str, output_path: str = None, image_style: str 
     meta.setdefault("width", 1920)
     meta.setdefault("height", 1080)
     meta.setdefault("imageStyle", image_style)
+    meta.setdefault("style", "refined_illustration")  # 新默认画风
+    meta.setdefault("styleGuide", None)  # LLM 生成后回写
     meta.setdefault("imageAspectRatio", "16:9")
     meta.setdefault("drawMode", draw_mode)
     meta.setdefault("pipeline", {"mode": pipeline_mode, "defaultSceneDuration": None})
@@ -72,9 +73,12 @@ def parse_storyboard(input_path: str, output_path: str = None, image_style: str 
         sys.exit(1)
 
     # Process each scene - auto-generate elements if missing
-    for scene in storyboard["scenes"]:
+    for i, scene in enumerate(storyboard["scenes"]):
         scene.setdefault("voiceText", "")
         scene.setdefault("duration", None)
+        # 新增 imageName 字段
+        scene_id = scene.get("id", f"scene{i+1}")
+        scene.setdefault("imageName", get_image_filename(scene_id))
         auto_generate_single_element(scene)
 
     # Write output
@@ -92,7 +96,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse storyboard script → storyboard.json")
     parser.add_argument("input", help="Input storyboard.json file")
     parser.add_argument("--output", "-o", help="Output path (default: output/{topic}/storyboard.json)")
-    parser.add_argument("--image-style", default="whiteboard", choices=["whiteboard", "blackboard", "notebook"])
+    parser.add_argument("--image-style", default="refined_illustration",
+                        choices=["whiteboard", "blackboard", "notebook", "refined_illustration", "custom"])
     parser.add_argument("--draw-mode", default="sketch_first", choices=["sketch_first", "sequential"])
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--mode", default="video_first", choices=["video_first", "full"])
@@ -106,6 +111,6 @@ if __name__ == "__main__":
                 topic = data.get("meta", {}).get("topic", "untitled")
         except Exception:
             pass
-        args.output = str(_PROJECT_ROOT / "output" / f"{topic}" / "storyboard.json")
+        args.output = str(PROJECT_ROOT / "output" / f"{topic}" / "storyboard.json")
 
     parse_storyboard(args.input, args.output, args.image_style, args.draw_mode, args.fps, args.mode)

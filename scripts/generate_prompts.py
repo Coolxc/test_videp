@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-generate_prompts.py - Generate image prompts from storyboard.json.
+generate_prompts.py - 两阶段 LLM 驱动 Prompt 生成（带静态降级）。
 
-Includes spatial separation guidance for multi-element scenes and
-cross-scene style consistency instructions.
+阶段 A: DeepSeek 生成跨场景视觉风格指南
+阶段 B: DeepSeek 逐场景生成详细图片 Prompt
+
+当 DEEPSEEK_API_KEY 未设置时使用增强版静态模版。输出 prompts.json + prompts.md。
 """
 
 import json
@@ -11,11 +13,30 @@ import os
 import sys
 from pathlib import Path
 
+from config import PROJECT_ROOT, get_image_filename
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# ── 精致插画风静态模版（降级方案）──
+REFINED_ILLUSTRATION_TEMPLATE = {
+    "prefix": (
+        "Refined vector illustration, clean precise linework with consistent 2-3px weight, "
+        "rich harmonious colors, subtle shadows and depth, professional infographic aesthetic, "
+        "light cream background (#F6F1E3), "
+    ),
+    "suffix": (
+        "No text, no letters, no numbers, no typography whatsoever. "
+        "Clear outlines around every element. "
+        "Elements well-separated with clear blank space between them. "
+        "16:9 aspect ratio, balanced composition. "
+        "Consistent visual style suitable for educational video series."
+    ),
+    "negative": (
+        "text, words, letters, numbers, typography, realistic photo, 3D render, "
+        "complex background, gradient background, watercolor texture, "
+        "painterly style, high saturation, busy composition"
+    ),
+}
 
-
-# Style templates
+# 兼容旧版 style templates
 STYLE_TEMPLATES = {
     "whiteboard": {
         "description": "Whiteboard illustration style",
@@ -32,128 +53,326 @@ STYLE_TEMPLATES = {
         "prefix": "Notebook paper style, blue grid lines on white background, ",
         "suffix": "Simple sketch, pen drawing style, clean lines, educational diagram.",
     },
+    "refined_illustration": {
+        "description": "Refined illustration style",
+        "prefix": REFINED_ILLUSTRATION_TEMPLATE["prefix"],
+        "suffix": REFINED_ILLUSTRATION_TEMPLATE["suffix"],
+    },
 }
 
-SPATIAL_GUIDANCE = (
-    "Ensure each element has clear blank space separation from others. "
-    "Do NOT overlap elements. Leave at least 10% of the canvas width between distinct elements. "
-    "Composition should be well-balanced with elements distributed across the canvas."
-)
+# ── System prompts for LLM ──
 
-CONSISTENCY_GUIDANCE = (
-    "Keep the whole series visually consistent. "
-    "Use the same line thickness, character proportions, and color palette across all scenes. "
-    "Maintain consistent perspective and visual style."
-)
+STYLE_GUIDE_SYSTEM_PROMPT = """你是一位专业的知识讲解视频视觉总监。
+你的任务：基于视频的所有场景内容，制定一份统一的视觉风格指南，确保所有场景的插画在视觉上
+高度一致，像出自同一位插画师之手。
+
+画风定位：精致插画风
+- 清晰精确的线条，一致的线宽
+- 丰富和谐的配色，不超过 5-7 种主色
+- 细腻的层次感，不要硬渐变
+- 专业矢量插画质感，类似高端信息图/商业演示
+- 浅色/奶油色背景（#F6F1E3 或相近色）
+- 图片中绝对不出现任何文字
+
+输出 JSON 格式：
+{
+  "colorPalette": ["#hex1", "#hex2", ...],
+  "lineStyle": "线条风格描述",
+  "characterStyle": "人物造型描述（如适用）",
+  "iconStyle": "图标/符号风格描述",
+  "compositionRules": "构图规则",
+  "moodAndTone": "整体氛围描述",
+  "consistencyNotes": "跨场景一致性要点"
+}"""
+
+SCENE_PROMPT_SYSTEM_PROMPT = """你是一位专业的 AI 图片生成 prompt 工程师，擅长为知识讲解视频生成精致插画风的图片 prompt。
+
+你需要将简短的场景描述扩展为详细、富有想象力的图片生成 prompt，同时严格遵循以下规则：
+
+【画风规则 — 精致插画风】
+1. 清晰精确的线条，一致的 2-3px 线宽，轻微手绘质感
+2. 色彩丰富但和谐，使用指定的配色方案
+3. 细腻的阴影和层次感，不要照片级写实
+4. 专业矢量插画质感，类似高端商业信息图
+5. 浅色/奶油色背景（#F6F1E3）——这是强制要求，不可更改
+6. 图片中绝对不出现任何文字、字母、数字、标点——文字全部在后期视频合成时叠加
+7. 各元素之间必须有清晰的空白分离（至少 10% 画布宽度），用于动画分区检测
+
+【技术约束 — 动画引擎兼容】
+- 图片会经过灰度转换 + 自适应阈值处理来检测内容边缘
+- 因此：所有绘制内容的边缘必须与背景有明显色差/对比度
+- 避免：大面积纯渐变（无法检测边缘）、内容与背景融为一体的设计
+- 建议：用清晰的轮廓线包围每个元素，即使是柔和的插画风也要有可辨识的边界
+
+【构图约束】
+- 画面比例: 16:9（横版）
+- 元素空间分布: 按场景描述中的位置关系布局，元素间留足空白
+- 每个元素应该是一个视觉上独立的"岛"，不与其他元素粘连
+
+输出严格的 JSON 格式：
+{
+  "imagePrompt": "完整的正面 prompt，200-400 字，详细描述画面内容、风格、构图",
+  "negativePrompt": "需要避免的内容，如文字、写实风、复杂背景等",
+  "compositionNotes": "给生图者的构图提示，说明各元素的空间位置关系",
+  "imageName": "sceneX.png"
+}"""
 
 
-def generate_prompts(storyboard: dict, output_path: str = None) -> str:
-    """Generate prompts.md from storyboard.json."""
+# ── 生成风格指南（阶段 A）──
+def generate_style_guide(storyboard: dict) -> dict:
+    """阶段 A：通过 DeepSeek 生成跨场景风格指南。"""
+    from llm_client import call_deepseek_json
+
     meta = storyboard.get("meta", {})
     scenes = storyboard.get("scenes", [])
-    style_name = meta.get("imageStyle", "whiteboard")
-    style = STYLE_TEMPLATES.get(style_name, STYLE_TEMPLATES["whiteboard"])
-    topic = meta.get("topic", "untitled")
 
-    lines = []
-    lines.append(f"# Image Prompts: {meta.get('title', 'Untitled')}")
-    lines.append(f"")
-    lines.append(f"**Style:** {style['description']}")
-    lines.append(f"**Total Scenes:** {len(scenes)}")
-    lines.append(f"")
-    lines.append(f"---")
-    lines.append(f"")
-
+    scene_descriptions = []
     for i, scene in enumerate(scenes):
-        lines.append(f"## Scene {i + 1}: {scene.get('id', f'scene{i+1}')}")
-        lines.append(f"")
+        sid = scene.get("id", f"scene{i+1}")
+        image_prompt = scene.get("imagePrompt", "") or scene.get("description", "")
+        voice_text = scene.get("voiceText", "")
+        scene_descriptions.append(
+            f"场景 {i+1} ({sid}):\n"
+            f"  画面描述: {image_prompt}\n"
+            f"  旁白: {voice_text}\n"
+        )
 
-        elements = scene.get("elements", [])
-        if len(elements) > 1:
-            lines.append(f"### Image Prompt (with spatial separation)")
-            lines.append(f"")
-            lines.append(f"{style['prefix']}{scene.get('imagePrompt', '')}")
-            lines.append(f"")
-            lines.append(f"**Spatial arrangement hints:**")
-            lines.append(f"{SPATIAL_GUIDANCE}")
-            for j, elem in enumerate(elements):
-                desc = elem.get("description", f"Element {j+1}")
-                bbox = elem.get("bbox", {})
-                pos_hint = _position_hint(bbox)
-                lines.append(f"  - {desc} ({pos_hint})")
-            lines.append(f"")
-            lines.append(f"{style['suffix']}")
-        else:
-            lines.append(f"### Image Prompt")
-            lines.append(f"")
-            lines.append(f"{style['prefix']}{scene.get('imagePrompt', '')}")
-            lines.append(f"")
-            lines.append(f"{style['suffix']}")
+    user_prompt = (
+        f"视频标题: {meta.get('title', 'Untitled')}\n"
+        f"共 {len(scenes)} 个场景:\n\n"
+        + "\n".join(scene_descriptions)
+        + "\n请为这组场景制定统一的精致插画风风格指南。"
+    )
 
-        if scene.get("voiceText"):
-            lines.append(f"")
-            lines.append(f"**Voiceover:** {scene['voiceText']}")
-
-        lines.append(f"")
-        lines.append(f"---")
-        lines.append(f"")
-
-    # Cross-scene consistency
-    lines.append(f"## Cross-Scene Consistency")
-    lines.append(f"")
-    lines.append(f"{CONSISTENCY_GUIDANCE}")
-    lines.append(f"")
-    lines.append(f"**For image generation tools:** If the tool supports reference images, "
-                 f"upload the generated image from Scene 1 as a style reference for subsequent scenes.")
-    lines.append(f"")
-
-    # Tool-specific instructions
-    lines.append(f"## Tool-Specific Tips")
-    lines.append(f"")
-    lines.append(f"- **Midjourney:** Use `--iw 2 --s 50` for style consistency")
-    lines.append(f"- **DALL-E:** Include 'keep visual style consistent across series' in each prompt")
-    lines.append(f"- **Stable Diffusion:** Use same seed and CFG scale (~7) for all scenes")
-    lines.append(f"- **GPT-4o / Claude:** Reference the previous image when generating the next")
-    lines.append(f"")
-    lines.append(f"---")
-    lines.append(f"**Important:** No text/characters in the generated images. "
-                 f"All text overlays are added in post-production.")
-
-    prompt_text = "\n".join(lines)
-
-    if output_path:
-        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-        with open(output_path, "w", encoding="utf-8") as f:
-            f.write(prompt_text)
-        print(f"  Wrote prompts: {output_path}")
-
-    return prompt_text
+    print(f"  [LLM] 生成风格指南 ({len(scenes)} 场景)...")
+    result = call_deepseek_json(STYLE_GUIDE_SYSTEM_PROMPT, user_prompt,
+                                 temperature=0.5, max_tokens=2000)
+    print(f"  [LLM] 风格指南完成: {result.get('colorPalette', [])}")
+    return result
 
 
-def _position_hint(bbox: dict) -> str:
-    """Generate a human-readable position hint from bbox coordinates."""
-    if not bbox:
-        return "center"
-    cx = bbox.get("x", 0) + bbox.get("w", 0) / 2
-    cy = bbox.get("y", 0) + bbox.get("h", 0) / 2
+# ── 生成场景 Prompt（阶段 B）──
+def generate_scene_prompt(
+    scene: dict,
+    scene_index: int,
+    total_scenes: int,
+    style_guide: dict,
+    previous_scenes: list[dict],
+) -> dict:
+    """阶段 B：通过 DeepSeek 为单个场景生成详细 prompt。"""
+    from llm_client import call_deepseek_json
 
-    h_pos = "center" if abs(cx - 960) < 320 else ("left" if cx < 640 else "right")
-    v_pos = "center" if abs(cy - 540) < 180 else ("top" if cy < 360 else "bottom")
-    return f"{v_pos}-{h_pos}" if v_pos != "center" or h_pos != "center" else "center"
+    scene_id = scene.get("id", f"scene{scene_index+1}")
+    image_prompt = scene.get("imagePrompt", "") or scene.get("description", "")
+    voice_text = scene.get("voiceText", "")
+    elements = scene.get("elements", [])
+
+    # 前序场景摘要
+    prev_summaries = []
+    for ps in previous_scenes:
+        ps_id = ps.get("id", "?")
+        ps_prompt = ps.get("imagePrompt", "") or ps.get("description", "")
+        prev_summaries.append(f"  场景 {ps_id}: {ps_prompt[:100]}")
+
+    user_prompt = (
+        f"【风格指南】\n{json.dumps(style_guide, ensure_ascii=False, indent=2)}\n\n"
+        f"【当前场景】\n"
+        f"场景 ID: {scene_id}\n"
+        f"场景序号: 第 {scene_index+1}/{total_scenes} 场景\n"
+        f"画面描述: {image_prompt}\n"
+        f"旁白文案: {voice_text}\n"
+        f"元素列表: {[e.get('description', e.get('id', '?')) for e in elements]}\n\n"
+        f"【前序场景摘要】（保持一致性参考）\n"
+        + "\n".join(prev_summaries) + "\n\n"
+        f"请生成精致插画风的详细图片 prompt。\n"
+        f"文件名必须为: {get_image_filename(scene_id)}"
+    )
+
+    print(f"  [LLM] 场景 {scene_index+1}/{total_scenes}: {scene_id}...")
+    result = call_deepseek_json(SCENE_PROMPT_SYSTEM_PROMPT, user_prompt,
+                                 temperature=0.7, max_tokens=3000)
+    # 确保 imageName 正确
+    result.setdefault("imageName", get_image_filename(scene_id))
+    return result
+
+
+# ── 静态降级方案 ──
+def _fallback_static_prompt(scene: dict, style_name: str = "refined_illustration") -> dict:
+    """无 LLM 时的降级方案：增强版静态模版。"""
+    scene_id = scene.get("id", "scene?")
+    image_prompt = scene.get("imagePrompt", "") or scene.get("description", "")
+    style = STYLE_TEMPLATES.get(style_name, REFINED_ILLUSTRATION_TEMPLATE)
+    negative = getattr(style, "negative", REFINED_ILLUSTRATION_TEMPLATE["negative"])
+    # 兼容旧格式
+    if isinstance(style, dict) and "negative" not in style:
+        negative = REFINED_ILLUSTRATION_TEMPLATE["negative"]
+
+    return {
+        "imagePrompt": f"{style['prefix']}{image_prompt} {style['suffix']}",
+        "negativePrompt": negative,
+        "compositionNotes": "元素均匀分布在 16:9 画布上，留足空白",
+        "imageName": get_image_filename(scene_id),
+    }
+
+
+# ── 格式化输出 ──
+def _format_prompts_md(prompts_data: dict, meta: dict) -> str:
+    """格式化为人类友好的 Markdown，含醒目文件名指引。"""
+    lines = []
+    title = meta.get("title", "Untitled")
+    lines.append(f"# 图片生成指南: {title}")
+    lines.append("")
+    lines.append(f"**画风**: 精致插画风")
+    scenes_data = prompts_data.get("scenes", [])
+    lines.append(f"**场景数**: {len(scenes_data)}")
+    style_guide = prompts_data.get("styleGuide", {})
+    if style_guide.get("colorPalette"):
+        lines.append(f"**配色方案**: {', '.join(style_guide['colorPalette'])}")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    # 文件名汇总表
+    lines.append("## 文件名清单")
+    lines.append("")
+    lines.append("| 场景 | 文件名 | 保存到 |")
+    lines.append("|------|--------|--------|")
+    topic = meta.get("topic", "untitled")
+    for s in scenes_data:
+        lines.append(f"| {s.get('sceneId', '?')} | {s.get('imageName', '?')} | output/{topic}/images/ |")
+    lines.append("")
+    lines.append("**注意：文件名必须精确匹配（小写，.png 后缀）**")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+
+    for i, s in enumerate(scenes_data):
+        lines.append(f"## 场景 {i+1}: {s.get('sceneId', f'scene{i+1}')}")
+        lines.append("")
+        lines.append("### ============================================")
+        lines.append(f"###   请保存为: {s.get('imageName', f'scene{i+1}.png')}")
+        lines.append("### ============================================")
+        lines.append("")
+        lines.append("**Prompt (复制到 Seedream):**")
+        lines.append("")
+        lines.append(s.get("imagePrompt", ""))
+        lines.append("")
+        if s.get("negativePrompt"):
+            lines.append("**负面提示词:**")
+            lines.append(s["negativePrompt"])
+            lines.append("")
+        if s.get("compositionNotes"):
+            lines.append("**构图说明:**")
+            lines.append(s["compositionNotes"])
+            lines.append("")
+        lines.append("---")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+# ── 主入口 ──
+def generate_prompts(
+    storyboard: dict,
+    output_dir: str = None,
+    use_llm: bool = True,
+) -> tuple[dict, str]:
+    """主入口。生成 prompts.json + prompts.md。
+
+    Args:
+        storyboard: 解析后的 storyboard dict
+        output_dir: 输出目录（存放 prompts.json 和 prompts.md）
+        use_llm: 是否使用 LLM（False = 静态降级）
+
+    Returns:
+        (prompts_data, prompts_md_text)
+    """
+    meta = storyboard.get("meta", {})
+    scenes = storyboard.get("scenes", [])
+    style_name = meta.get("style", meta.get("imageStyle", "refined_illustration"))
+
+    prompts_data = {"styleGuide": {}, "scenes": []}
+
+    if use_llm:
+        try:
+            from llm_client import call_deepseek_json
+            # 先检查 API key
+            _ = call_deepseek_json  # trigger import check
+
+            # 阶段 A: 风格指南
+            style_guide = generate_style_guide(storyboard)
+            prompts_data["styleGuide"] = style_guide
+
+            # 阶段 B: 逐场景 Prompt
+            previous_scenes = []
+            for i, scene in enumerate(scenes):
+                scene_id = scene.get("id", f"scene{i+1}")
+                result = generate_scene_prompt(
+                    scene, i, len(scenes), style_guide, previous_scenes
+                )
+                prompts_data["scenes"].append({
+                    "sceneId": scene_id,
+                    "imageName": result.get("imageName", get_image_filename(scene_id)),
+                    "imagePrompt": result.get("imagePrompt", ""),
+                    "negativePrompt": result.get("negativePrompt", ""),
+                    "compositionNotes": result.get("compositionNotes", ""),
+                })
+                previous_scenes.append(scene)
+
+            print(f"\n  [LLM] 所有 {len(scenes)} 个场景的 prompt 生成完成！")
+
+        except (ImportError, RuntimeError, Exception) as e:
+            print(f"\n  [WARN] LLM 不可用，使用静态降级模版: {e}")
+            use_llm = False
+
+    if not use_llm:
+        print(f"\n  [STATIC] 使用 {style_name} 风格静态模版生成 prompts...")
+        for i, scene in enumerate(scenes):
+            scene_id = scene.get("id", f"scene{i+1}")
+            result = _fallback_static_prompt(scene, style_name)
+            prompts_data["scenes"].append({
+                "sceneId": scene_id,
+                "imageName": result["imageName"],
+                "imagePrompt": result["imagePrompt"],
+                "negativePrompt": result["negativePrompt"],
+                "compositionNotes": result["compositionNotes"],
+            })
+
+    # 生成 prompts.md
+    prompts_md = _format_prompts_md(prompts_data, meta)
+
+    # 写文件
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+        # prompts.json
+        json_path = os.path.join(output_dir, "prompts.json")
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(prompts_data, f, ensure_ascii=False, indent=2)
+        print(f"  Wrote: {json_path}")
+
+        # prompts.md
+        md_path = os.path.join(output_dir, "prompts.md")
+        with open(md_path, "w", encoding="utf-8") as f:
+            f.write(prompts_md)
+        print(f"  Wrote: {md_path}")
+
+    return prompts_data, prompts_md
 
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Generate image prompts from storyboard.json")
+    parser = argparse.ArgumentParser(description="Generate image prompts with LLM")
     parser.add_argument("--storyboard", "-s", required=True, help="Path to storyboard.json")
-    parser.add_argument("--output", "-o", help="Output prompts.md path")
+    parser.add_argument("--output-dir", "-o", help="Output directory")
+    parser.add_argument("--no-llm", action="store_true", help="Force static template (no LLM)")
     args = parser.parse_args()
 
     with open(args.storyboard, "r", encoding="utf-8") as f:
         storyboard = json.load(f)
 
-    topic = storyboard.get("meta", {}).get("topic", "untitled")
-    if not args.output:
-        args.output = str(_PROJECT_ROOT / "output" / topic / "prompts.md")
+    if not args.output_dir:
+        topic = storyboard.get("meta", {}).get("topic", "untitled")
+        args.output_dir = str(PROJECT_ROOT / "output" / topic)
 
-    generate_prompts(storyboard, args.output)
+    generate_prompts(storyboard, args.output_dir, use_llm=not args.no_llm)

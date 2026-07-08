@@ -19,8 +19,9 @@ from pydub.silence import detect_silence
 import numpy as np
 
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_TTS_CACHE_DIR = _PROJECT_ROOT / "cache" / "tts"
+from config import PROJECT_ROOT, WORKFLOW_DIR
+
+_TTS_CACHE_DIR = PROJECT_ROOT / "cache" / "tts"
 
 
 def normalize_punctuation(text: str) -> str:
@@ -43,7 +44,7 @@ def get_cache_path(text: str, voice: int = 602005, speed: float = 1.1) -> Path:
 
 def synthesize_tencent(text: str, output_path: str, voice: int = 602005, speed: float = 1.1) -> float:
     """Synthesize via Tencent Cloud TTS (subprocess)."""
-    tts_script = _PROJECT_ROOT / "whiteboard-video" / "scripts" / "tts_tencent.py"
+    tts_script = WORKFLOW_DIR / "scripts" / "tts_tencent.py"
     if not tts_script.exists():
         raise FileNotFoundError(f"TTS script not found: {tts_script}")
 
@@ -110,7 +111,7 @@ def _synthesize_long_text(text: str, output_path: str, voice: int = 602005, spee
     for i, chunk in enumerate(chunks):
         chunk_path = output_path.replace(".wav", f"_part{i}.wav")
         result = subprocess.run(
-            [sys.executable, str(_PROJECT_ROOT / "whiteboard-video" / "scripts" / "tts_tencent.py"),
+            [sys.executable, str(WORKFLOW_DIR / "scripts" / "tts_tencent.py"),
              "--text", chunk.strip(),
              "--output", chunk_path],
             capture_output=True, text=True,
@@ -257,7 +258,9 @@ def tts_pipeline(storyboard_path: str, output_dir: str = None,
 
     if output_dir is None:
         topic = meta.get("topic", "untitled")
-        output_dir = str(_PROJECT_ROOT / "output" / topic)
+        from config import get_output_dir
+        # Build a minimal storyboard-like dict for get_output_dir
+        output_dir = str(PROJECT_ROOT / "output" / topic)
 
     audio_dir = os.path.join(output_dir, "audio")
     os.makedirs(audio_dir, exist_ok=True)

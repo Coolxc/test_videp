@@ -48,11 +48,23 @@ export interface StoryboardElement {
   narration: string;
 }
 
+export interface StyleGuide {
+  colorPalette: string[];
+  lineStyle: string;
+  characterStyle?: string;
+  iconStyle?: string;
+  compositionRules?: string;
+  moodAndTone?: string;
+  consistencyNotes?: string;
+}
+
 export interface StoryboardScene {
   id: string;
-  imagePrompt: string;
+  imagePrompt?: string;
+  description?: string;
   voiceText: string;
   duration: number | null;
+  imageName?: string;
   elements?: StoryboardElement[];
   textOverlay?: TextOverlayConfig;
 }
@@ -63,22 +75,26 @@ export interface CameraConfig {
   transitionMs?: number;
 }
 
+export interface StoryboardMeta {
+  title: string;
+  topic: string;
+  fps: number;
+  width: number;
+  height: number;
+  imageStyle?: string;
+  style?: "whiteboard" | "blackboard" | "notebook" | "refined_illustration" | "custom";
+  styleGuide?: StyleGuide | null;
+  imageAspectRatio: string;
+  drawMode: "sketch_first" | "sequential";
+  pipeline: { mode: string; defaultSceneDuration: number | null };
+  camera?: CameraConfig;
+  tts: { provider: string; voice: number; speed: number };
+  subtitle: { enabled: boolean; fontSize: number };
+  transition: { type: string; durationFrames: number };
+  animationEngine: string;
+}
+
 export interface Storyboard {
-  meta: {
-    title: string;
-    topic: string;
-    fps: number;
-    width: number;
-    height: number;
-    imageStyle: string;
-    imageAspectRatio: string;
-    drawMode: "sketch_first" | "sequential";
-    pipeline: { mode: string; defaultSceneDuration: number | null };
-    camera?: CameraConfig;
-    tts: { provider: string; voice: number; speed: number };
-    subtitle: { enabled: boolean; fontSize: number };
-    transition: { type: string; durationFrames: number };
-    animationEngine: string;
-  };
+  meta: StoryboardMeta;
   scenes: StoryboardScene[];
 }

@@ -13,7 +13,7 @@ import {
 } from "remotion";
 import "@fontsource/zcool-kuaile";
 
-import { Timeline, SceneTimeline, ElementTimeline, TextOverlayConfig } from "./types";
+import { Timeline, SceneTimeline, ElementTimeline, TextOverlayConfig, StoryboardScene } from "./types";
 
 // ========== Design Tokens ==========
 const C = {
@@ -47,9 +47,10 @@ const Grid: React.FC = () => {
 // ========== Subtitle ==========
 interface SubtitleProps {
   segments: Array<{ text: string; startTime: number; endTime: number }>;
+  fontSize?: number;
 }
 
-const Subtitle: React.FC<SubtitleProps> = ({ segments }) => {
+const Subtitle: React.FC<SubtitleProps> = ({ segments, fontSize = 36 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const currentTime = frame / fps;
@@ -83,7 +84,7 @@ const Subtitle: React.FC<SubtitleProps> = ({ segments }) => {
         <span
           style={{
             fontFamily: FONT_FAMILY,
-            fontSize: 36,
+            fontSize,
             color: C.white,
             lineHeight: 1.4,
             textAlign: "center",
@@ -402,6 +403,7 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({ timeline, stor
   const totalF = timeline.totalFrames;
   const hasAudio = storyboard.meta.pipeline.mode === "full";
   const fps = timeline.fps;
+  const subtitleFontSize = storyboard.meta.subtitle?.fontSize || 36;
 
   const bgmVolume = (frame: number) => {
     const fadeIn = interpolate(frame, [0, 30], [0, 0.03], { extrapolateRight: "clamp" });
@@ -414,12 +416,17 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({ timeline, stor
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg }}>
-      {/* Background music */}
-      <Audio src={staticFile("bgm.mp3")} loop volume={bgmVolume} />
+      {/* Background music — only in non-full mode (full mode uses audio_mixer) */}
+      {storyboard.meta.pipeline.mode !== "full" && (
+        <Audio src={staticFile("bgm.mp3")} loop volume={bgmVolume} />
+      )}
 
       {/* Scenes */}
-      {timeline.scenes.map((tScene, i) => {
-        const scene = storyboard.scenes[i];
+      {timeline.scenes.map((tScene) => {
+        // Match scene by ID rather than array index
+        const scene = storyboard.scenes.find(
+          (s: StoryboardScene) => s.id === tScene.id
+        );
         if (!scene) return null;
 
         // Build subtitle segments from element narrations
@@ -460,7 +467,9 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({ timeline, stor
               />
 
               {/* Subtitles */}
-              {filteredSubs.length > 0 && <Subtitle segments={filteredSubs} />}
+              {filteredSubs.length > 0 && (
+                <Subtitle segments={filteredSubs} fontSize={subtitleFontSize} />
+              )}
 
               {/* Drawing sound effects */}
               {tScene.elements && tScene.elements.length > 0 && (
@@ -484,7 +493,7 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({ timeline, stor
               )}
 
               {/* Progress bar */}
-              <ProgressBar current={i + 1} total={timeline.scenes.length} />
+              <ProgressBar current={timeline.scenes.indexOf(tScene) + 1} total={timeline.scenes.length} />
             </SceneBackground>
           </Sequence>
         );

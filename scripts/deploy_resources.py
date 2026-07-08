@@ -16,14 +16,14 @@ import os
 import shutil
 from pathlib import Path
 
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from config import PROJECT_ROOT, ENGINE_HAND_PATH, WORKFLOW_DIR
 
 
 def deploy_resources(storyboard_path: str, output_dir: str = None,
                       copy_animations: bool = True,
                       copy_audio: bool = True,
-                      copy_sfx: bool = True):
+                      copy_sfx: bool = True,
+                      timeline_path: str = None):
     """Deploy generated resources to remotion-project/public/."""
     with open(storyboard_path, "r", encoding="utf-8") as f:
         storyboard = json.load(f)
@@ -32,9 +32,10 @@ def deploy_resources(storyboard_path: str, output_dir: str = None,
     topic = meta.get("topic", "untitled")
 
     if output_dir is None:
-        output_dir = str(_PROJECT_ROOT / "output" / topic)
+        from config import get_output_dir
+        output_dir = str(get_output_dir(storyboard))
 
-    remotion_public = _PROJECT_ROOT / "remotion-project" / "public"
+    remotion_public = PROJECT_ROOT / "remotion-project" / "public"
     os.makedirs(remotion_public, exist_ok=True)
 
     # ── 1. Animations ──
@@ -64,7 +65,7 @@ def deploy_resources(storyboard_path: str, output_dir: str = None,
         # BGM: copy from whiteboard-video if not exists
         bgm_dst = remotion_public / "bgm.mp3"
         if not bgm_dst.exists():
-            bgm_src = _PROJECT_ROOT / "whiteboard-video" / "remotion-project" / "public" / "bgm.mp3"
+            bgm_src = WORKFLOW_DIR / "remotion-project" / "public" / "bgm.mp3"
             if bgm_src.exists():
                 shutil.copy2(bgm_src, bgm_dst)
                 print(f"  BGM: copied from whiteboard-video")
@@ -82,8 +83,7 @@ def deploy_resources(storyboard_path: str, output_dir: str = None,
     # ── 4. Writing hand ──
     hand_dst = remotion_public / "assets" / "writing-hand-small.png"
     if not hand_dst.exists():
-        hand_src = (_PROJECT_ROOT / "whiteboard-video-workflow" / "whiteboard-animation"
-                     / "assets" / "drawing-hand.png")
+        hand_src = ENGINE_HAND_PATH
         if hand_src.exists():
             # Load, resize to smaller, save
             import cv2
@@ -101,13 +101,14 @@ def deploy_resources(storyboard_path: str, output_dir: str = None,
     os.makedirs(fonts_dst, exist_ok=True)
     # The font @fontsource/zcool-kuaile is loaded via npm, not file copy
 
-    # ── 6. Update scene-config.json (for Remotion) ──
-    _update_scene_config(storyboard, remotion_public)
+    # ── 6. Update scene-config.json + timeline.json (for Remotion) ──
+    _update_scene_config(storyboard, remotion_public, timeline_path=timeline_path)
 
     print(f"\n  Resources deployed to: {remotion_public}")
 
 
-def _update_scene_config(storyboard: dict, remotion_public: Path):
+def _update_scene_config(storyboard: dict, remotion_public: Path,
+                          timeline_path: str = None):
     """Generate scene-config.json and timeline.json for Remotion consumption."""
     scenes_out = []
     for scene in storyboard.get("scenes", []):
@@ -117,6 +118,7 @@ def _update_scene_config(storyboard: dict, remotion_public: Path):
             "voiceText": scene.get("voiceText", ""),
             "duration": scene.get("duration", None),
             "textOverlay": scene.get("textOverlay", None),
+            "elements": scene.get("elements", []),
         })
 
     config = {
@@ -136,13 +138,18 @@ def _update_scene_config(storyboard: dict, remotion_public: Path):
         json.dump(config, f, ensure_ascii=False, indent=2)
     print(f"  Scene config (src): {config_path_src}")
 
-    # Copy timeline.json to src/ as well
-    timeline_src = remotion_public.parent / "src" / "timeline.json"
-    timeline_public = remotion_public / "timeline.json"
-    if timeline_public.exists():
-        import shutil
-        shutil.copy2(timeline_public, timeline_src)
-        print(f"  Timeline (src): {timeline_src}")
+    # Copy timeline.json to both public/ and src/
+    remotion_src = remotion_public.parent / "src"
+    if timeline_path and os.path.exists(timeline_path):
+        shutil.copy2(timeline_path, remotion_public / "timeline.json")
+        shutil.copy2(timeline_path, remotion_src / "timeline.json")
+        print(f"  Timeline deployed: {timeline_path}")
+    else:
+        # Fallback: try existing timeline in public/
+        timeline_public = remotion_public / "timeline.json"
+        if timeline_public.exists():
+            shutil.copy2(timeline_public, remotion_src / "timeline.json")
+            print(f"  Timeline (src): {remotion_src / 'timeline.json'}")
 
 
 if __name__ == "__main__":

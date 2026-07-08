@@ -17,9 +17,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_ENGINE_DIR = _PROJECT_ROOT / "whiteboard-video-workflow" / "whiteboard-animation"
+from config import PROJECT_ROOT, validate_engine as config_validate_engine
 
 
 def check_python_deps() -> list[str]:
@@ -60,20 +58,7 @@ def check_ffmpeg() -> list[str]:
 
 
 def check_engine() -> list[str]:
-    errors = []
-    if not _ENGINE_DIR.exists():
-        errors.append(f"Animation engine not found: {_ENGINE_DIR}")
-        return errors
-
-    scripts_dir = _ENGINE_DIR / "scripts"
-    if not (scripts_dir / "generate_whiteboard.py").exists():
-        errors.append(f"Missing: {scripts_dir / 'generate_whiteboard.py'}")
-
-    assets_dir = _ENGINE_DIR / "assets"
-    if not (assets_dir / "drawing-hand.png").exists():
-        errors.append(f"Missing: {assets_dir / 'drawing-hand.png'}")
-
-    return errors
+    return config_validate_engine()
 
 
 def validate_storyboard_schema(sb: dict) -> list[str]:
@@ -96,8 +81,16 @@ def validate_storyboard_schema(sb: dict) -> list[str]:
         prefix = f"scenes[{i}]"
         if "id" not in scene:
             errors.append(f"{prefix}: 'id' is required")
-        if "imagePrompt" not in scene:
-            errors.append(f"{prefix}: 'imagePrompt' is required")
+
+        # imagePrompt 或 voiceText 至少有一个
+        if not scene.get("imagePrompt") and not scene.get("voiceText"):
+            errors.append(f"{prefix}: 至少需要 imagePrompt 或 voiceText")
+
+        # 验证 imageName 格式（如果指定）
+        if scene.get("imageName"):
+            name = scene["imageName"]
+            if not name.endswith(".png"):
+                errors.append(f"{prefix}: imageName 必须以 .png 结尾, 当前: {name}")
 
         elements = scene.get("elements")
         if elements is not None:
@@ -114,10 +107,30 @@ def validate_storyboard_schema(sb: dict) -> list[str]:
     return errors
 
 
+def check_llm_keys() -> list[str]:
+    """Check LLM API key availability. Non-fatal — prints warning if missing."""
+    warnings = []
+
+    # 优先从 .env 加载（同 check_tts_keys 的做法）
+    env_path = PROJECT_ROOT / ".env"
+    if env_path.exists():
+        try:
+            from dotenv import load_dotenv
+            load_dotenv(env_path)
+        except ImportError:
+            pass  # dotenv 未安装，后面会报 key 缺失
+
+    if not os.environ.get("DEEPSEEK_API_KEY"):
+        warnings.append(
+            "DEEPSEEK_API_KEY 未设置，prompt 生成将使用静态模版（质量降低）"
+        )
+    return warnings
+
+
 def check_tts_keys() -> list[str]:
     errors = []
     # Check env vars or .env file
-    env_path = _PROJECT_ROOT / ".env"
+    env_path = PROJECT_ROOT / ".env"
     if env_path.exists():
         from dotenv import load_dotenv
         load_dotenv(env_path)
@@ -156,6 +169,11 @@ def run_checks(storyboard_path: str = None, check_tts: bool = False) -> bool:
     if check_tts:
         print("\n  TTS keys...")
         all_errors.extend(check_tts_keys())
+
+    print("\n  LLM keys...")
+    llm_warnings = check_llm_keys()
+    for w in llm_warnings:
+        print(f"  [WARN] {w}")
 
     if all_errors:
         print(f"\n{'='*50}")

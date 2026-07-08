@@ -27,8 +27,9 @@ import time
 from pathlib import Path
 
 
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_SCRIPTS_DIR = _PROJECT_ROOT / "scripts"
+from config import PROJECT_ROOT, get_output_dir
+
+_SCRIPTS_DIR = PROJECT_ROOT / "scripts"
 
 
 def _import_step(name):
@@ -38,11 +39,6 @@ def _import_step(name):
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
-
-
-def _get_output_dir(storyboard: dict) -> Path:
-    topic = storyboard.get("meta", {}).get("topic", "untitled")
-    return _PROJECT_ROOT / "output" / f"{topic}-{time.strftime('%Y%m%d')}"
 
 
 def _load_storyboard(path: str) -> dict:
@@ -92,7 +88,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
     """Main pipeline orchestration."""
 
     storyboard = _load_storyboard(storyboard_path)
-    output_dir = _get_output_dir(storyboard)
+    output_dir = get_output_dir(storyboard)
     os.makedirs(output_dir, exist_ok=True)
 
     topic = storyboard.get("meta", {}).get("topic", "untitled")
@@ -162,7 +158,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
     # ── Step 2: Generate prompts ──
     if not skip_prompts and not _step_done(output_dir, "prompts"):
         prompts_mod = _import_step("generate_prompts")
-        prompts_mod.generate_prompts(storyboard, str(output_dir / "prompts.md"))
+        prompts_mod.generate_prompts(storyboard, str(output_dir), use_llm=True)
         _write_checkpoint(output_dir, "prompts")
         print(f"\n  >>> Image prompts generated: {output_dir / 'prompts.md'}")
         print(f"  >>> Generate images using your preferred tool, place in {output_dir / 'images'}/")
@@ -182,7 +178,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
 
     # ── Step 5: TTS (full mode only) ──
     tts_data = None
-    if mode == "full" or mode == "full":
+    if mode == "full":
         if not _step_done(output_dir, "tts"):
             tts_mod = _import_step("tts_pipeline")
             tts_data = tts_mod.tts_pipeline(
@@ -270,6 +266,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
             storyboard_path, str(output_dir),
             copy_animations=True,
             copy_audio=(mode == "full"),
+            timeline_path=str(timeline_path),
         )
 
         # Remotion render

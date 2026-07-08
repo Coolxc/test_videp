@@ -13,10 +13,9 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from config import PROJECT_ROOT, get_image_filename
 
-
-_PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(_PROJECT_ROOT / "scripts"))
+sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
 
 from generate_scene_animation import generate_scene_with_regions, BACKGROUND_BGR
 
@@ -61,39 +60,43 @@ def generate_animations(storyboard_path: str, regions_path: str = None,
         camera_config = meta.get("camera", {"enabled": True, "maxZoom": 2.5, "transitionMs": 800})
 
     topic = meta.get("topic", "untitled")
-    images_dir = os.path.join(output_dir or str(_PROJECT_ROOT / "output" / topic), "images")
-    anim_dir = os.path.join(output_dir or str(_PROJECT_ROOT / "output" / topic), "animations")
+    images_dir = os.path.join(output_dir or str(PROJECT_ROOT / "output" / topic), "images")
+    anim_dir = os.path.join(output_dir or str(PROJECT_ROOT / "output" / topic), "animations")
     os.makedirs(anim_dir, exist_ok=True)
 
     results = {}
 
     for i, scene in enumerate(scenes):
         scene_id = scene.get("id", f"scene{i+1}")
-        img_path = os.path.join(images_dir, f"{scene_id}.png")
-        if not os.path.exists(img_path):
-            img_path = os.path.join(images_dir, f"{scene_id}.jpg")
-        if not os.path.exists(img_path):
-            print(f"  [SKIP] Scene '{scene_id}': no image found")
-            continue
 
-        # Normalize background
-        normalize_background(img_path)
+        # Use find_and_normalize_image for robust image lookup
+        from validate_images import find_and_normalize_image
+        img_path = find_and_normalize_image(images_dir, scene_id)
+        if img_path is None:
+            raise FileNotFoundError(
+                f"场景 '{scene_id}' 图片未找到。\n"
+                f"期望文件名: {get_image_filename(scene_id)}\n"
+                f"图片目录: {images_dir}"
+            )
+
+        # Normalize background (use content-aware fix)
+        from validate_images import fix_background_color
+        fix_background_color(os.path.dirname(img_path))
         print(f"\n[{i+1}/{len(scenes)}] Animating: {scene_id}")
 
         # Get regions for this scene
         scene_regions = scene.get("elements", [])
         if not scene_regions:
-            # Full canvas single element
-            img = cv2.imread(img_path)
-            if img is not None:
-                h, w = img.shape[:2]
-                scene_regions = [{
-                    "id": "full",
-                    "bbox": {"x": 0, "y": 0, "w": w, "h": h},
-                    "drawAt": 0,
-                    "durationMs": 3000,
-                    "narration": scene.get("voiceText", ""),
-                }]
+            # Full canvas single element — use detect_full_content_bbox
+            from detect_regions import detect_full_content_bbox
+            content_bbox = detect_full_content_bbox(img_path)
+            scene_regions = [{
+                "id": "full",
+                "bbox": content_bbox,
+                "drawAt": 0,
+                "durationMs": 3000,
+                "narration": scene.get("voiceText", ""),
+            }]
 
         # Calculate total duration
         total_duration_ms = scene.get("totalDurationMs", 0)

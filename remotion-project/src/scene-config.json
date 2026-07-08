@@ -38,7 +38,45 @@
       "imagePrompt": "画面左侧一个火柴人坐在电脑前低头工作，头上冒汗珠；右上方一个巨大的闹钟时针飞速旋转；右下角散落几张纸币。各元素之间有明确的空白间隔。",
       "voiceText": "还在单纯靠出卖劳动时间，来换取那点微薄的工资吗？",
       "duration": null,
-      "textOverlay": null
+      "textOverlay": null,
+      "elements": [
+        {
+          "id": "person",
+          "description": "火柴人坐在电脑前低头工作，头上冒汗珠",
+          "bbox": {
+            "x": 80,
+            "y": 250,
+            "w": 500,
+            "h": 550
+          },
+          "drawAt": null,
+          "narration": "还在单纯靠出卖劳动时间，"
+        },
+        {
+          "id": "clock",
+          "description": "巨大的闹钟时针飞速旋转",
+          "bbox": {
+            "x": 700,
+            "y": 50,
+            "w": 400,
+            "h": 400
+          },
+          "drawAt": null,
+          "narration": "来换取那点微薄的工资吗？"
+        },
+        {
+          "id": "money",
+          "description": "散落的纸币",
+          "bbox": {
+            "x": 750,
+            "y": 550,
+            "w": 350,
+            "h": 300
+          },
+          "drawAt": null,
+          "narration": ""
+        }
+      ]
     },
     {
       "id": "scene2",
@@ -54,14 +92,42 @@
         "style": "handwritten",
         "drawAt": 0.7,
         "duration": 1.5
-      }
+      },
+      "elements": [
+        {
+          "id": "brain",
+          "description": "大脑轮廓",
+          "bbox": {
+            "x": 560,
+            "y": 190,
+            "w": 800,
+            "h": 700
+          },
+          "drawAt": null,
+          "narration": "停止做执行者，开始做拥有高阶判断力的决策者。"
+        }
+      ]
     },
     {
       "id": "scene3",
       "imagePrompt": "一座金字塔结构图，底层是'执行'，中层是'管理'，顶层是'决策'，全白板风格。",
       "voiceText": "从执行到管理再到决策，这是每一个职场人的进阶之路。",
       "duration": null,
-      "textOverlay": null
+      "textOverlay": null,
+      "elements": [
+        {
+          "id": "pyramid",
+          "description": "三层金字塔结构图",
+          "bbox": {
+            "x": 460,
+            "y": 80,
+            "w": 1000,
+            "h": 920
+          },
+          "drawAt": null,
+          "narration": "从执行到管理再到决策，这是每一个职场人的进阶之路。"
+        }
+      ]
     }
   ]
 }

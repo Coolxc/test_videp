@@ -1,36 +1,67 @@
 {
   "fps": 30,
-  "totalFrames": 600,
+  "totalFrames": 852,
   "frameReference": "scene-relative",
   "drawMode": "sketch_first",
   "scenes": [
     {
       "id": "scene1",
       "startFrame": 0,
-      "durationFrames": 300,
+      "durationFrames": 492,
       "elements": [
         {
-          "id": "full",
+          "id": "person",
           "sketchAtFrame": 0,
-          "sketchDurationFrames": 120,
-          "colorizeAtFrame": 180,
-          "colorizeDurationFrames": 60,
-          "narration": "Welcome to this whiteboard video."
+          "sketchDurationFrames": 72,
+          "colorizeAtFrame": 210,
+          "colorizeDurationFrames": 36,
+          "narration": "还在单纯靠出卖劳动时间，"
+        },
+        {
+          "id": "clock",
+          "sketchAtFrame": 0,
+          "sketchDurationFrames": 72,
+          "colorizeAtFrame": 246,
+          "colorizeDurationFrames": 36,
+          "narration": "来换取那点微薄的工资吗？"
+        },
+        {
+          "id": "money",
+          "sketchAtFrame": 0,
+          "sketchDurationFrames": 30,
+          "colorizeAtFrame": 282,
+          "colorizeDurationFrames": 15,
+          "narration": ""
         }
       ]
     },
     {
       "id": "scene2",
-      "startFrame": 300,
-      "durationFrames": 300,
+      "startFrame": 438,
+      "durationFrames": 180,
       "elements": [
         {
-          "id": "full",
+          "id": "brain",
           "sketchAtFrame": 0,
-          "sketchDurationFrames": 120,
-          "colorizeAtFrame": 180,
-          "colorizeDurationFrames": 60,
-          "narration": "This is a demonstration."
+          "sketchDurationFrames": 132,
+          "colorizeAtFrame": 132,
+          "colorizeDurationFrames": 66,
+          "narration": "停止做执行者，开始做拥有高阶判断力的决策者。"
+        }
+      ]
+    },
+    {
+      "id": "scene3",
+      "startFrame": 726,
+      "durationFrames": 180,
+      "elements": [
+        {
+          "id": "pyramid",
+          "sketchAtFrame": 0,
+          "sketchDurationFrames": 150,
+          "colorizeAtFrame": 150,
+          "colorizeDurationFrames": 75,
+          "narration": "从执行到管理再到决策，这是每一个职场人的进阶之路。"
         }
       ]
     }
