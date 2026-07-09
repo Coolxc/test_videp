@@ -41,24 +41,46 @@ def check_python_deps() -> list[str]:
         except ImportError:
             print(f"  [WARN] Optional dependency missing: {pip_name}")
 
+    # Vectorization deps
+    for mod_name, pip_name in [("svgpathtools", "svgpathtools")]:
+        try:
+            __import__(mod_name)
+        except ImportError:
+            errors.append(f"Missing: {pip_name} (pip install {pip_name})")
+
     return errors
 
 
 def check_ffmpeg() -> list[str]:
-    errors = []
-    for cmd in ("ffmpeg", "ffprobe"):
+    """ffmpeg 检查降级为警告（SVG 管线不直接依赖，但 Remotion 渲染时需要）。"""
+    warnings = []
+    for cmd in ("ffmpeg",):
         if shutil.which(cmd) is None:
-            errors.append(f"Missing: {cmd} not found in PATH")
+            warnings.append(f"ffmpeg 未安装（Remotion 渲染时需要）")
         else:
             try:
                 subprocess.run([cmd, "-version"], capture_output=True, timeout=5)
             except Exception as e:
-                errors.append(f"  {cmd} error: {e}")
-    return errors
+                warnings.append(f"  {cmd} error: {e}")
+    return warnings  # 返回 warnings 而非 errors
 
 
 def check_engine() -> list[str]:
-    return config_validate_engine()
+    # SVG 管线不再需要旧引擎
+    return []
+
+
+def check_potrace() -> list[str]:
+    """检查 potrace CLI 是否可用。"""
+    errors = []
+    if shutil.which("potrace") is None:
+        errors.append("potrace 未安装。运行: sudo apt install potrace")
+    else:
+        try:
+            subprocess.run(["potrace", "--version"], capture_output=True, timeout=5)
+        except Exception as e:
+            errors.append(f"potrace 错误: {e}")
+    return errors
 
 
 def validate_storyboard_schema(sb: dict) -> list[str]:
@@ -145,16 +167,20 @@ def check_tts_keys() -> list[str]:
 
 def run_checks(storyboard_path: str = None, check_tts: bool = False) -> bool:
     all_errors = []
+    all_warnings = []
 
-    print("=== Environment Check ===")
+    print("=== Environment Check (SVG Pipeline) ===")
 
-    print("\n[1/4] Python dependencies...")
+    print("\n[1/4] Python dependencies (svgpathtools)...")
     all_errors.extend(check_python_deps())
 
-    print("\n[2/4] ffmpeg/ffprobe...")
-    all_errors.extend(check_ffmpeg())
+    print("\n[2/4] ffmpeg + potrace...")
+    all_warnings.extend(check_ffmpeg())
+    for w in all_warnings:
+        print(f"  [WARN] {w}")
+    all_errors.extend(check_potrace())
 
-    print("\n[3/4] Animation engine...")
+    print("\n[3/4] Engine assets...")
     all_errors.extend(check_engine())
 
     if storyboard_path:

@@ -1,0 +1,16 @@
+# Whiteboard Video Pipeline - Python dependencies
+# Install: pip install -r requirements.txt
+
+# Core dependencies
+opencv-python>=4.8.0
+numpy>=1.24.0
+av>=10.0.0
+scipy>=1.10.0
+pydub>=0.25.1
+
+# TTS (optional for full mode)
+tencentcloud-sdk-python>=3.0.1000
+python-dotenv>=1.0.0
+
+# Image validation (optional)
+Pillow>=9.0.0

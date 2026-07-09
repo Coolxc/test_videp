@@ -18,7 +18,7 @@ def generate_srt(timeline: dict, storyboard: dict, output_path: str = None) -> s
     """
     Generate SRT subtitle content from timeline + storyboard.
 
-    Each element's narration is shown during its sketchAtFrame → sketchAtFrame + sketchDurationFrames.
+    Each element's narration is shown during its drawAtFrame → drawAtFrame + drawDurationFrames.
     Uses scene-level startFrame offset to compute global timestamps.
     """
     fps = timeline.get("fps", 30)
@@ -36,8 +36,8 @@ def generate_srt(timeline: dict, storyboard: dict, output_path: str = None) -> s
             if not text:
                 continue
 
-            start_frame = scene_start_frame + elem.get("sketchAtFrame", 0)
-            duration_frames = elem.get("sketchDurationFrames", 30)
+            start_frame = scene_start_frame + elem.get("drawAtFrame", 0)
+            duration_frames = elem.get("drawDurationFrames", 30)
             end_frame = start_frame + duration_frames
 
             start_time = _frames_to_srt_time(start_frame, fps)

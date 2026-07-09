@@ -16,6 +16,28 @@ import numpy as np
 from config import PROJECT_ROOT, BACKGROUND_BGR as _BACKGROUND_BGR
 
 
+def normalize_image_size(image_path: str, target_w: int = 1920, target_h: int = 1080) -> bool:
+    """等比缩放图片到目标尺寸，白色 padding 填充。返回 True 已修改。"""
+    img = cv2.imread(image_path)
+    if img is None:
+        return False
+
+    h, w = img.shape[:2]
+    if w == target_w and h == target_h:
+        return False
+
+    scale = min(target_w / w, target_h / h)
+    new_w, new_h = int(w * scale), int(h * scale)
+    resized = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
+
+    canvas = np.full((target_h, target_w, 3), 255, dtype=np.uint8)
+    y_off = (target_h - new_h) // 2
+    x_off = (target_w - new_w) // 2
+    canvas[y_off:y_off + new_h, x_off:x_off + new_w] = resized
+    cv2.imwrite(image_path, canvas)
+    return True
+
+
 def find_and_normalize_image(images_dir: str, scene_id: str):
     """查找场景图片，支持大小写不敏感、多后缀、自动重命名。
 
@@ -118,6 +140,11 @@ def validate_images(storyboard: dict, images_dir: str,
             messages.append(f"[ERR] Scene '{scene_id}': cannot read image")
             continue
 
+        # Normalize to 1920x1080
+        if normalize_image_size(img_path):
+            messages.append(f"[AUTO] Scene '{scene_id}': resized to 1920x1080")
+            img = cv2.imread(img_path)  # Re-read after resize
+
         h, w = img.shape[:2]
 
         # 2. Check size
@@ -125,15 +152,15 @@ def validate_images(storyboard: dict, images_dir: str,
         if min_dim < 512:
             messages.append(f"[WARN] Scene '{scene_id}': image too small ({w}x{h}, min 512px recommended)")
 
-        # 3. Check background color (near-white/beige)
+        # 3. Check background color (pure white)
         corner_pixels = [
             img[5, 5], img[5, -5], img[-5, 5], img[-5, -5],
             img[h//2, 5], img[h//2, -5],
         ]
         avg_corner = np.mean(corner_pixels, axis=0)
-        is_light = np.all(avg_corner > 150)
-        if not is_light:
-            messages.append(f"[WARN] Scene '{scene_id}': background may not be light enough "
+        is_pure_white = np.all(avg_corner > 245)
+        if not is_pure_white:
+            messages.append(f"[WARN] Scene '{scene_id}': background may not be pure white "
                             f"(avg corner BGR: {avg_corner.astype(int)})")
 
         # 4. Compute histogram for cross-scene consistency
@@ -180,7 +207,7 @@ def validate_images(storyboard: dict, images_dir: str,
     return messages
 
 
-def fix_background_color(images_dir: str, target_bgr=(227, 241, 246),
+def fix_background_color(images_dir: str, target_bgr=(255, 255, 255),
                           tolerance: int = 30):
     """内容感知的背景色修复。仅替换与图片边缘连通的近白色区域。
 
@@ -265,7 +292,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Validate scene images")
     parser.add_argument("--storyboard", "-s", required=True, help="Path to storyboard.json")
     parser.add_argument("--images-dir", "-i", help="Path to images directory (default: output/{topic}/images)")
-    parser.add_argument("--fix-bg", action="store_true", help="Auto-fix background colors")
+    parser.add_argument("--fix-bg", action="store_true", help="Auto-fix background colors to pure white")
     args = parser.parse_args()
 
     with open(args.storyboard, "r", encoding="utf-8") as f:

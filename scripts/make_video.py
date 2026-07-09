@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """
-make_video.py - Main entry point for the whiteboard video pipeline.
+make_video.py - SVG 路径动画管线的主入口。
 
-Orchestrates all steps from storyboard → final video with checkpoint-based
-resumability. Supports two modes:
-  - video_first: Generate silent video + subtitles (no TTS required)
-  - full: Full pipeline including TTS + audio mixing
+编排从 storyboard → 最终视频的所有步骤，带 checkpoint 断点续传。
+支持两种模式：
+  - video_first: 生成无声视频 + 字幕（不需要 TTS）
+  - full: 完整管线（含 TTS + 音频混音）
+
+核心变化（相对旧版）：
+  - Step 8: generate_animations → vectorize_images（SVG 路径替代 MP4 动画）
+  - 移除 detect_regions、ffprobe 校正步骤
+  - 不再依赖外部动画引擎（generate_whiteboard.py）
 
 Usage:
   # Step 1: Generate prompts (user then creates images)
@@ -13,9 +18,6 @@ Usage:
 
   # Step 2: Generate video (after images are in place)
   python scripts/make_video.py --storyboard storyboard.json --mode video-first --skip-prompts
-
-  # Full mode (requires TTS API key)
-  python scripts/make_video.py --storyboard storyboard.json --mode full
 """
 
 import json
@@ -25,7 +27,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-
 
 from config import PROJECT_ROOT, get_output_dir
 
@@ -83,21 +84,19 @@ def run_step(step_name: str, output_dir: Path, skip_if_done: bool = True, **kwar
 
 def make_video(storyboard_path: str, mode: str = "video_first",
                skip_prompts: bool = False, audio_only: bool = False,
-               video_path: str = None, draw_mode: str = "sketch_first",
+               video_path: str = None, draw_mode: str = "sequential",
                no_hand: bool = False):
-    """Main pipeline orchestration."""
+    """Main pipeline orchestration for SVG path animation."""
 
     storyboard = _load_storyboard(storyboard_path)
     output_dir = get_output_dir(storyboard)
     os.makedirs(output_dir, exist_ok=True)
 
-    topic = storyboard.get("meta", {}).get("topic", "untitled")
     meta = storyboard.get("meta", {})
-    camera_config = meta.get("camera", {"enabled": True, "maxZoom": 2.5, "transitionMs": 800})
     fps = meta.get("fps", 30)
 
     print(f"\n{'#'*60}")
-    print(f"  Whiteboard Video Pipeline")
+    print(f"  SVG Whiteboard Video Pipeline")
     print(f"  Title: {meta.get('title', 'Untitled')}")
     print(f"  Mode: {mode}")
     print(f"  Output: {output_dir}")
@@ -127,7 +126,6 @@ def make_video(storyboard_path: str, mode: str = "video_first",
         print(f"\n  Merging audio into video...")
         audio_files = sorted(audio_dir.glob("*_mixed.wav"))
         if audio_files:
-            # Concat all audio files
             concat_path = output_dir / "_audio_concat.txt"
             with open(concat_path, "w") as f:
                 for af in audio_files:
@@ -152,7 +150,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
     if not skip_prompts and not _step_done(output_dir, "parse"):
         parse_mod = _import_step("parse_storyboard")
         parse_mod.parse_storyboard(storyboard_path, str(output_dir / "storyboard.json"),
-                                    draw_mode=draw_mode, pipeline_mode=mode)
+                                   draw_mode=draw_mode, pipeline_mode=mode)
         _write_checkpoint(output_dir, "parse")
 
     # ── Step 2: Generate prompts ──
@@ -172,7 +170,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
     if not _step_done(output_dir, "validate_images"):
         val_img_mod = _import_step("validate_images")
         issues = val_img_mod.validate_images(storyboard, str(images_dir))
-        # Auto-fix background
+        # Auto-fix background to pure white
         val_img_mod.fix_background_color(str(images_dir))
         _write_checkpoint(output_dir, "validate_images", {"issues": len(issues)})
 
@@ -192,15 +190,14 @@ def make_video(storyboard_path: str, mode: str = "video_first",
             cp = _read_checkpoint(output_dir)
             tts_data = cp.get("tts", {}).get("data", {})
 
-    # ── Step 6: Compute timeline ──
+    # ── Step 6: Compute timeline (simplified SVG version) ──
     timeline_path = output_dir / "timeline.json"
     if not _step_done(output_dir, "timeline"):
         timeline_mod = _import_step("compute_timeline")
         timeline = timeline_mod.compute_timeline(
             storyboard_path, str(timeline_path),
-            tts_data=tts_data, draw_mode=draw_mode,
-            transition_ms=camera_config.get("transitionMs", 800),
-            fps=fps,
+            tts_data=tts_data, draw_mode="sequential",
+            transition_ms=800, fps=fps,
         )
         _write_checkpoint(output_dir, "timeline", {"totalFrames": timeline["totalFrames"]})
     else:
@@ -213,33 +210,19 @@ def make_video(storyboard_path: str, mode: str = "video_first",
         sfx_mod.generate_sfx()
         _write_checkpoint(output_dir, "sfx")
 
-    # ── Step 8: Generate animations ──
-    anim_dir = output_dir / "animations"
-    if not _step_done(output_dir, "animations"):
-        anim_mod = _import_step("generate_animations")
-        anim_mod.generate_animations(
-            storyboard_path,
-            regions_path=str(output_dir / "regions_detected.json"),
-            output_dir=str(output_dir),
-            camera_config=camera_config,
-            draw_hand=not no_hand,
-            draw_mode=draw_mode,
+    # ── Step 8: Vectorize images (SVG 路径数据，替代旧版 generate_animations) ──
+    if not _step_done(output_dir, "vectorize"):
+        vec_mod = _import_step("vectorize_images")
+        vec_mod.vectorize_all_scenes(
+            str(output_dir / "storyboard.json"),
+            str(images_dir),
+            str(output_dir),
         )
-        _write_checkpoint(output_dir, "animations")
-    else:
-        print(f"\n[SKIP] Animations already generated")
+        _write_checkpoint(output_dir, "vectorize")
 
-    # ── Step 9: Finalize timeline (ffprobe) + generate subtitles ──
-    if not _step_done(output_dir, "final_timeline"):
-        timeline_mod = _import_step("compute_timeline")
-        timeline_mod.finalize_timeline_with_ffprobe(
-            str(timeline_path), str(anim_dir), str(timeline_path)
-        )
-        _write_checkpoint(output_dir, "final_timeline")
-
+    # ── Step 9: Generate subtitles (无 ffprobe 校正) ──
     subs_path = output_dir / "subtitles.srt"
     if not _step_done(output_dir, "subtitles"):
-        # Reload finalized timeline
         with open(timeline_path) as f:
             timeline = json.load(f)
         subs_mod = _import_step("generate_subtitles")
@@ -260,31 +243,51 @@ def make_video(storyboard_path: str, mode: str = "video_first",
     # ── Step 11: Deploy resources + Remotion render ──
     video_output = output_dir / ("video.mp4" if mode == "full" else "video_silent.mp4")
     if not _step_done(output_dir, "remotion"):
-        # Deploy resources
+        # Deploy resources (SVG data, not MP4)
         deploy_mod = _import_step("deploy_resources")
         deploy_mod.deploy_resources(
             storyboard_path, str(output_dir),
-            copy_animations=True,
+            copy_animations=False,  # SVG mode
             copy_audio=(mode == "full"),
             timeline_path=str(timeline_path),
         )
 
         # Remotion render
-        remotion_dir = _PROJECT_ROOT / "remotion-project"
+        remotion_dir = PROJECT_ROOT / "remotion-project"
+        os.makedirs(str(video_output.parent), exist_ok=True)
         print(f"\n  Rendering with Remotion...")
+        print(f"  Output: {video_output}")
         result = subprocess.run(
             ["npx", "remotion", "render", "src/index.tsx", "VideoMain",
-             str(video_output)],
+             str(video_output), "--overwrite"],
             cwd=str(remotion_dir),
             capture_output=True, text=True,
         )
+        print(result.stdout)
         if result.returncode == 0:
-            print(f"  Remotion render complete: {video_output}")
-            _write_checkpoint(output_dir, "remotion")
+            if video_output.exists():
+                size_mb = os.path.getsize(video_output) / (1024 * 1024)
+                print(f"  Remotion render complete: {video_output} ({size_mb:.1f} MB)")
+                _write_checkpoint(output_dir, "remotion")
+            else:
+                print(f"  [WARN] Render returned success but file not found at expected path")
+                print(f"  Searching for output file...")
+                # Search for recently created mp4 files
+                import glob as _glob
+                recent = sorted(_glob.glob(str(remotion_dir / "**/*.mp4"), recursive=True),
+                              key=os.path.getmtime, reverse=True)[:3]
+                if recent:
+                    for f in recent:
+                        print(f"    Found: {f}")
+                    # Copy latest to expected output
+                    shutil.copy2(recent[0], str(video_output))
+                    print(f"  Copied to: {video_output}")
+                    _write_checkpoint(output_dir, "remotion")
+                else:
+                    print(f"  [ERR] No MP4 found anywhere — render may have failed silently")
         else:
             print(f"  [ERR] Remotion render failed:")
             print(result.stderr)
-            # Continue anyway — user can re-render manually
 
     # ── Step 12: Generate publish copy ──
     if not _step_done(output_dir, "publish"):
@@ -303,7 +306,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Whiteboard video pipeline orchestrator")
+    parser = argparse.ArgumentParser(description="SVG whiteboard video pipeline orchestrator")
     parser.add_argument("--storyboard", "-s", required=True, help="Path to storyboard.json")
     parser.add_argument("--mode", default="video_first", choices=["video_first", "full"],
                         help="Pipeline mode")
@@ -312,8 +315,9 @@ def main():
     parser.add_argument("--audio-only", action="store_true",
                         help="Only add audio to existing video")
     parser.add_argument("--video", help="Path to existing video (for audio-only mode)")
-    parser.add_argument("--draw-mode", default="sketch_first",
-                        choices=["sketch_first", "sequential"])
+    parser.add_argument("--draw-mode", default="sequential",
+                        choices=["sequential"],
+                        help="Draw mode (SVG pipeline only supports sequential)")
     parser.add_argument("--no-hand", action="store_true", help="Disable drawing hand")
     args = parser.parse_args()
 

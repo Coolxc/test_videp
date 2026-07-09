@@ -1,3 +1,18 @@
+/**
+ * WhiteboardVideo.tsx - SVG 白板视频主合成组件
+ *
+ * 用 SVGDrawAnimation 替代了旧版的 <Video> 嵌入预渲染 MP4。
+ * 所有场景元素通过 SVG stroke-dashoffset 路径动画呈现"笔尖生长"效果。
+ *
+ * 主要变化（相对旧版）：
+ *  - Video → SVGDrawAnimation（核心变化）
+ *  - 背景色 #F6F1E3 → #FFFFFF（纯白纸）
+ *  - Grid 移除（纯白纸无需格线）
+ *  - 场景间加入 PaperPullTransition 拉纸转场
+ *  - DrawingSFX 简化为单层（不再区分 sketch/colorize）
+ *  - 接收 svgData prop 替代 animations/ 目录下的 MP4
+ */
+
 import React from "react";
 import {
   AbsoluteFill,
@@ -6,19 +21,23 @@ import {
   staticFile,
   useCurrentFrame,
   interpolate,
-  spring,
   useVideoConfig,
-  Img,
-  Video,
 } from "remotion";
 import "@fontsource/zcool-kuaile";
 
-import { Timeline, SceneTimeline, ElementTimeline, TextOverlayConfig, StoryboardScene } from "./types";
+import type {
+  Timeline,
+  SceneTimeline,
+  ElementTimeline,
+  StoryboardScene,
+  SVGSceneData,
+} from "./types";
+import SVGDrawAnimation from "./SVGDrawAnimation";
+import PaperPullTransition from "./PaperPullTransition";
 
 // ========== Design Tokens ==========
 const C = {
-  bg: "#F6F1E3",
-  grid: "#E0DDD5",
+  bg: "#FFFFFF", // 纯白纸
   accent: "#C05050",
   text: "#2D3748",
   subtitleBg: "rgba(45, 55, 72, 0.85)",
@@ -27,22 +46,6 @@ const C = {
 
 const FONT_FAMILY = "'ZCOOL KuaiLe', sans-serif";
 const FPS = 30;
-
-// ========== Grid Background ==========
-const Grid: React.FC = () => {
-  const lines: React.ReactNode[] = [];
-  for (let x = 0; x <= 1920; x += 100) {
-    lines.push(
-      <line key={`v${x}`} x1={x} y1={0} x2={x} y2={1080} stroke={C.grid} strokeWidth={0.5} />
-    );
-  }
-  for (let y = 0; y <= 1080; y += 100) {
-    lines.push(
-      <line key={`h${y}`} x1={0} y1={y} x2={1920} y2={y} stroke={C.grid} strokeWidth={0.5} />
-    );
-  }
-  return <svg width={1920} height={1080} style={{ position: "absolute" }}>{lines}</svg>;
-};
 
 // ========== Subtitle ==========
 interface SubtitleProps {
@@ -56,7 +59,7 @@ const Subtitle: React.FC<SubtitleProps> = ({ segments, fontSize = 36 }) => {
   const currentTime = frame / fps;
 
   const currentSeg = segments.find(
-    (s) => currentTime >= s.startTime && currentTime < s.endTime
+    (s) => currentTime >= s.startTime && currentTime < s.endTime,
   );
 
   if (!currentSeg) return null;
@@ -98,7 +101,7 @@ const Subtitle: React.FC<SubtitleProps> = ({ segments, fontSize = 36 }) => {
   );
 };
 
-// ========== Drawing Sound Effects ==========
+// ========== Drawing Sound Effects (简化版，单层音效) ==========
 interface DrawingSFXProps {
   elements: ElementTimeline[];
 }
@@ -106,43 +109,28 @@ interface DrawingSFXProps {
 const DrawingSFX: React.FC<DrawingSFXProps> = ({ elements }) => (
   <>
     {elements.map((elem) => (
-      <React.Fragment key={elem.id}>
-        {/* Pen sketch SFX */}
-        <Sequence from={elem.sketchAtFrame} durationInFrames={elem.sketchDurationFrames}>
-          <Audio
-            src={staticFile("assets/sfx/pen_sketch.mp3")}
-            loop
-            volume={(f) => {
-              const dur = elem.sketchDurationFrames;
-              if (dur <= 0) return 0;
-              const fadeIn = interpolate(f, [0, 5], [0, 0.12], { extrapolateRight: "clamp" });
-              const fadeOut = interpolate(f, [dur - 5, dur], [0.12, 0], {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-              });
-              return Math.min(fadeIn, fadeOut);
-            }}
-          />
-        </Sequence>
-
-        {/* Marker colorize SFX */}
-        <Sequence from={elem.colorizeAtFrame} durationInFrames={elem.colorizeDurationFrames}>
-          <Audio
-            src={staticFile("assets/sfx/marker_color.mp3")}
-            loop
-            volume={(f) => {
-              const dur = elem.colorizeDurationFrames;
-              if (dur <= 0) return 0;
-              const fadeIn = interpolate(f, [0, 5], [0, 0.08], { extrapolateRight: "clamp" });
-              const fadeOut = interpolate(f, [dur - 5, dur], [0.08, 0], {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-              });
-              return Math.min(fadeIn, fadeOut);
-            }}
-          />
-        </Sequence>
-      </React.Fragment>
+      <Sequence
+        key={elem.id}
+        from={elem.drawAtFrame}
+        durationInFrames={elem.drawDurationFrames}
+      >
+        <Audio
+          src={staticFile("assets/sfx/pen_sketch.mp3")}
+          loop
+          volume={(f) => {
+            const dur = elem.drawDurationFrames;
+            if (dur <= 0) return 0;
+            const fadeIn = interpolate(f, [0, 5], [0, 0.12], {
+              extrapolateRight: "clamp",
+            });
+            const fadeOut = interpolate(f, [dur - 5, dur], [0.12, 0], {
+              extrapolateLeft: "clamp",
+              extrapolateRight: "clamp",
+            });
+            return Math.min(fadeIn, fadeOut);
+          }}
+        />
+      </Sequence>
     ))}
   </>
 );
@@ -155,20 +143,23 @@ interface WritingHandProps {
   fontSize: number;
 }
 
-const WritingHand: React.FC<WritingHandProps> = ({ chars, startFrame, framesPerChar, fontSize }) => {
+const WritingHand: React.FC<WritingHandProps> = ({
+  chars,
+  startFrame,
+  framesPerChar,
+  fontSize,
+}) => {
   const frame = useCurrentFrame();
 
-  // Find which char is currently being written
   for (let i = chars.length - 1; i >= 0; i--) {
     const charStart = startFrame + i * framesPerChar;
     if (frame >= charStart) {
       const charProgress = (frame - charStart) / framesPerChar;
       if (charProgress < 0.5) {
-        // Show hand near this character
         const x = 12 + i * (fontSize * 0.65);
         const y = fontSize * 0.1;
         return (
-          <Img
+          <img
             src={staticFile("assets/writing-hand-small.png")}
             style={{
               position: "absolute",
@@ -179,6 +170,7 @@ const WritingHand: React.FC<WritingHandProps> = ({ chars, startFrame, framesPerC
               opacity: 0.9,
               zIndex: 20,
             }}
+            alt=""
           />
         );
       }
@@ -208,7 +200,7 @@ const HandwrittenText: React.FC<HandwrittenTextProps> = ({
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const chars = [...text]; // Correctly splits CJK characters
+  const chars = [...text];
   const framesPerChar = Math.max(1, durationFrames / chars.length);
 
   return (
@@ -231,15 +223,6 @@ const HandwrittenText: React.FC<HandwrittenTextProps> = ({
             ? 0
             : interpolate(age, [0, 4], [0, 1], { extrapolateRight: "clamp" });
 
-        const scale =
-          age < 0
-            ? 0
-            : spring({
-                frame: Math.max(0, age),
-                fps,
-                config: { stiffness: 300, damping: 20 },
-              });
-
         return (
           <span
             key={i}
@@ -249,8 +232,6 @@ const HandwrittenText: React.FC<HandwrittenTextProps> = ({
               color,
               visibility: age < 0 ? "hidden" : "visible",
               opacity,
-              transform: `scale(${scale})`,
-              transformOrigin: "center bottom",
               display: "inline",
             }}
           >
@@ -270,17 +251,26 @@ const HandwrittenText: React.FC<HandwrittenTextProps> = ({
 
 // ========== Text Overlay Wrapper ==========
 interface TextOverlayProps {
-  config: TextOverlayConfig;
+  config: any;
   sceneDurationFrames: number;
 }
 
-const TextOverlay: React.FC<TextOverlayProps> = ({ config, sceneDurationFrames }) => {
+const TextOverlay: React.FC<TextOverlayProps> = ({
+  config,
+  sceneDurationFrames,
+}) => {
   const { fps } = useVideoConfig();
   const drawAtFrame = (config.drawAt ?? 0) * fps;
   const durationFrames = (config.duration ?? config.text.length * 0.3) * fps;
 
   if (config.style === "fade") {
-    return <FadeOverlay config={config} startFrame={drawAtFrame} durationFrames={durationFrames} />;
+    return (
+      <FadeOverlay
+        config={config}
+        startFrame={drawAtFrame}
+        durationFrames={durationFrames}
+      />
+    );
   }
 
   return (
@@ -297,17 +287,22 @@ const TextOverlay: React.FC<TextOverlayProps> = ({ config, sceneDurationFrames }
 };
 
 const FadeOverlay: React.FC<{
-  config: TextOverlayConfig;
+  config: any;
   startFrame: number;
   durationFrames: number;
 }> = ({ config, startFrame, durationFrames }) => {
   const frame = useCurrentFrame();
   const age = frame - startFrame;
 
-  const opacity = interpolate(age, [0, 10, durationFrames - 10, durationFrames], [0, 1, 1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const opacity = interpolate(
+    age,
+    [0, 10, durationFrames - 10, durationFrames],
+    [0, 1, 1, 0],
+    {
+      extrapolateLeft: "clamp",
+      extrapolateRight: "clamp",
+    },
+  );
 
   return (
     <div
@@ -344,7 +339,9 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ current, total }) => (
       zIndex: 40,
     }}
   >
-    <div style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 6 }}>
+    <div
+      style={{ display: "flex", justifyContent: "flex-start", gap: 8, marginBottom: 6 }}
+    >
       {Array.from({ length: total }, (_, i) => (
         <div
           key={i}
@@ -387,26 +384,31 @@ interface SceneBackgroundProps {
 }
 
 const SceneBackground: React.FC<SceneBackgroundProps> = ({ children }) => (
-  <AbsoluteFill style={{ backgroundColor: C.bg }}>
-    <Grid />
-    {children}
-  </AbsoluteFill>
+  <AbsoluteFill style={{ backgroundColor: C.bg }}>{children}</AbsoluteFill>
 );
 
 // ========== Main Composition ==========
 interface WhiteboardVideoProps {
   timeline: Timeline;
   storyboard: any;
+  svgData: Record<string, SVGSceneData>;
 }
 
-export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({ timeline, storyboard }) => {
+export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({
+  timeline,
+  storyboard,
+  svgData,
+}) => {
   const totalF = timeline.totalFrames;
   const hasAudio = storyboard.meta.pipeline.mode === "full";
   const fps = timeline.fps;
   const subtitleFontSize = storyboard.meta.subtitle?.fontSize || 36;
+  const transitionFrames = timeline.transitionDurationFrames || 25;
 
   const bgmVolume = (frame: number) => {
-    const fadeIn = interpolate(frame, [0, 30], [0, 0.03], { extrapolateRight: "clamp" });
+    const fadeIn = interpolate(frame, [0, 30], [0, 0.03], {
+      extrapolateRight: "clamp",
+    });
     const fadeOut = interpolate(frame, [totalF - 30, totalF], [0.03, 0], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
@@ -416,18 +418,23 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({ timeline, stor
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg }}>
-      {/* Background music — only in non-full mode (full mode uses audio_mixer) */}
+      {/* Background music */}
       {storyboard.meta.pipeline.mode !== "full" && (
         <Audio src={staticFile("bgm.mp3")} loop volume={bgmVolume} />
       )}
 
       {/* Scenes */}
-      {timeline.scenes.map((tScene) => {
-        // Match scene by ID rather than array index
+      {timeline.scenes.map((tScene, i) => {
         const scene = storyboard.scenes.find(
-          (s: StoryboardScene) => s.id === tScene.id
+          (s: StoryboardScene) => s.id === tScene.id,
         );
         if (!scene) return null;
+
+        const isLast = i === timeline.scenes.length - 1;
+
+        // SVG 路径数据
+        const sceneSvg = svgData[tScene.id];
+        const hasSvgData = sceneSvg && sceneSvg.elements && sceneSvg.elements.length > 0;
 
         // Build subtitle segments from element narrations
         const subSegs = tScene.elements
@@ -435,8 +442,8 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({ timeline, stor
               .filter((e: ElementTimeline) => e.narration)
               .map((elem: ElementTimeline) => ({
                 text: elem.narration,
-                startTime: elem.sketchAtFrame / fps,
-                endTime: (elem.sketchAtFrame + elem.sketchDurationFrames) / fps,
+                startTime: elem.drawAtFrame / fps,
+                endTime: (elem.drawAtFrame + elem.drawDurationFrames) / fps,
               }))
           : [
               {
@@ -446,7 +453,6 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({ timeline, stor
               },
             ];
 
-        // Remove empty subtitle entries
         const filteredSubs = subSegs.filter((s: any) => s.text);
 
         return (
@@ -456,22 +462,28 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({ timeline, stor
             durationInFrames={tScene.durationFrames}
           >
             <SceneBackground>
-              {/* Whiteboard animation video */}
-              <Video
-                src={staticFile(`animations/${scene.id}_final.mp4`)}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "contain",
-                }}
-              />
+              {/* SVG 路径动画（替代旧版 Video） */}
+              {hasSvgData ? (
+                <SVGDrawAnimation
+                  elements={sceneSvg.elements}
+                  drawAtFrames={tScene.elements?.map((e) => e.drawAtFrame) || []}
+                  drawDurations={
+                    tScene.elements?.map((e) => e.drawDurationFrames) || []
+                  }
+                  viewBox={sceneSvg.viewBox}
+                  showHand={!storyboard.meta?.noHand}
+                />
+              ) : (
+                /* Fallback: show empty white background */
+                null
+              )}
 
               {/* Subtitles */}
               {filteredSubs.length > 0 && (
                 <Subtitle segments={filteredSubs} fontSize={subtitleFontSize} />
               )}
 
-              {/* Drawing sound effects */}
+              {/* Drawing sound effects (单层) */}
               {tScene.elements && tScene.elements.length > 0 && (
                 <DrawingSFX elements={tScene.elements} />
               )}
@@ -492,8 +504,19 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({ timeline, stor
                 />
               )}
 
+              {/* Paper pull transition (场景间转场) */}
+              {!isLast && (
+                <PaperPullTransition
+                  startFrame={tScene.durationFrames - transitionFrames}
+                  durationFrames={transitionFrames}
+                />
+              )}
+
               {/* Progress bar */}
-              <ProgressBar current={timeline.scenes.indexOf(tScene) + 1} total={timeline.scenes.length} />
+              <ProgressBar
+                current={i + 1}
+                total={timeline.scenes.length}
+              />
             </SceneBackground>
           </Sequence>
         );

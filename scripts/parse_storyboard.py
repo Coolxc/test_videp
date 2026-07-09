@@ -56,7 +56,7 @@ def parse_storyboard(input_path: str, output_path: str = None, image_style: str 
     meta.setdefault("width", 1920)
     meta.setdefault("height", 1080)
     meta.setdefault("imageStyle", image_style)
-    meta.setdefault("style", "refined_illustration")  # 新默认画风
+    meta.setdefault("style", "ipad_sketch")  # 新默认画风：iPad 简笔画
     meta.setdefault("styleGuide", None)  # LLM 生成后回写
     meta.setdefault("imageAspectRatio", "16:9")
     meta.setdefault("drawMode", draw_mode)

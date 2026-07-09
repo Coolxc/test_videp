@@ -27,9 +27,21 @@ ENGINE_WORKFLOW_DIR = Path(os.environ.get(
 ))
 
 # ── 视觉常量 ──
-BACKGROUND_HEX = "#F6F1E3"
-BACKGROUND_BGR = (227, 241, 246)  # OpenCV BGR 格式
-BACKGROUND_RGB = (246, 241, 227)
+BACKGROUND_HEX = "#FFFFFF"
+BACKGROUND_BGR = (255, 255, 255)  # OpenCV BGR 格式 — 纯白
+BACKGROUND_RGB = (255, 255, 255)
+
+
+# ── vtracer 矢量化参数（针对 iPad 简笔画优化）──
+VTRACER_PARAMS = {
+    "colormode": "binary",
+    "filter_speckle": 8,
+    "mode": "spline",
+    "corner_threshold": 45,
+    "length_threshold": 5.0,
+    "splice_threshold": 60,
+    "path_precision": 3,
+}
 
 
 # ── 图片命名 ──
@@ -48,12 +60,9 @@ def get_output_dir(storyboard: dict) -> Path:
 
 
 def validate_engine():
-    """启动时检查引擎是否可用。"""
+    """启动时检查必需依赖是否可用。"""
     errors = []
     if not ENGINE_DIR.exists():
         errors.append(f"动画引擎目录不存在: {ENGINE_DIR}")
-    if not (ENGINE_SCRIPTS_DIR / "generate_whiteboard.py").exists():
-        errors.append(f"引擎脚本不存在: {ENGINE_SCRIPTS_DIR / 'generate_whiteboard.py'}")
-    if not ENGINE_HAND_PATH.exists():
-        errors.append(f"画手素材不存在: {ENGINE_HAND_PATH}")
+    # 旧的 generate_whiteboard.py 不再需要，但保留目录检查
     return errors
