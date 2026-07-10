@@ -224,7 +224,7 @@ if __name__ == "__main__":
     parser.add_argument("--fps", type=int, default=30)
     args = parser.parse_args()
 
-    with open(args.storyboard) as f:
+    with open(args.storyboard, encoding="utf-8") as f:
         sb = json.load(f)
     topic = sb.get("meta", {}).get("topic", "untitled")
 

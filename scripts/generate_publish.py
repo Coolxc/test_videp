@@ -116,7 +116,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", "-o", help="Output publish.md path")
     args = parser.parse_args()
 
-    with open(args.storyboard) as f:
+    with open(args.storyboard, "r", encoding="utf-8") as f:
         sb = json.load(f)
     topic = sb.get("meta", {}).get("topic", "untitled")
     output = args.output or str(_PROJECT_ROOT / "output" / topic / "publish.md")

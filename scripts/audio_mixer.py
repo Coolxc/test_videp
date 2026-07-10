@@ -121,7 +121,7 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", "-o", help="Output directory")
     args = parser.parse_args()
 
-    with open(args.storyboard) as f:
+    with open(args.storyboard, "r", encoding="utf-8") as f:
         sb = json.load(f)
     topic = sb.get("meta", {}).get("topic", "untitled")
 

@@ -6,8 +6,8 @@ extract_drawing_paths.py - 从 PNG 图片中提取绘制中心线路径。
 输出: drawing_paths/{scene_id}.json (paths + element assignment)
       drawing_paths/drawing-paths.json (合并文件，供 Remotion 加载)
 
-技术: scikit-image skeletonize → 1px 骨架 → 连通分量(8-connectivity)
-      → nearest-neighbor 排序 → SVG polyline → 按 element bbox 分组
+技术: scikit-image skeletonize → 1px 骨架 → 交叉点拆分
+      → 链式遍历 → SVG polyline → 按 element bbox 分组
 
 路径用途: 作为 Remotion MaskRevealAnimation 的蒙版引导路径。
 蒙版笔刷宽度 80-100px，对路径精度要求低（容错 20px+）。
@@ -24,7 +24,7 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
-from scipy.ndimage import label
+from scipy.ndimage import label, convolve
 from skimage.morphology import skeletonize
 
 from config import PROJECT_ROOT, get_image_filename
@@ -50,30 +50,26 @@ def extract_drawing_paths(image_path: str, elements: list[dict]) -> list[dict]:
     # 形态学骨架化 → 1px 宽中心线
     skeleton = skeletonize(binary)
 
-    # 8-connectivity 连通分量标记（对骨架线连接友好）
-    struct8 = np.ones((3, 3), dtype=bool)
-    labeled, n = label(skeleton, structure=struct8)
+    # 交叉点拆分 + 链式遍历（替代原来的连通分量+最近邻排序）
+    branches = _extract_branches(skeleton, min_branch_length=5)
 
     # 提取每条路径的坐标点
     raw_paths = []
-    for i in range(1, n + 1):
-        ys, xs = np.where(labeled == i)
-        if len(xs) < 5:
-            continue  # 过滤过短路径（噪点）
+    for ordered in branches:
+        xs = [p[0] for p in ordered]
+        ys = [p[1] for p in ordered]
 
-        points = list(zip(xs.tolist(), ys.tolist()))
-        ordered = _order_points_nearest_neighbor(points)
         d = _points_to_svg_polyline(ordered)
 
         bbox = {
-            "x": int(xs.min()),
-            "y": int(ys.min()),
-            "w": int(xs.max() - xs.min()),
-            "h": int(ys.max() - ys.min()),
+            "x": int(min(xs)),
+            "y": int(min(ys)),
+            "w": int(max(xs) - min(xs)),
+            "h": int(max(ys) - min(ys)),
         }
         raw_paths.append({"d": d, "bbox": bbox, "length": len(xs)})
 
-    print(f"  骨架: {n} 连通分量 → {len(raw_paths)} 有效路径")
+    print(f"  骨架: {len(branches)} 分支 → {len(raw_paths)} 有效路径")
 
     # 按元素 bbox 分组
     return _assign_paths_to_elements(raw_paths, elements)
@@ -135,68 +131,107 @@ def _points_to_svg_polyline(points: list[tuple[int, int]]) -> str:
     return " ".join(parts)
 
 
-def _order_points_nearest_neighbor(
-    points: list[tuple[int, int]],
-) -> list[tuple[int, int]]:
+def _extract_branches(skeleton: np.ndarray, min_branch_length: int = 3) -> list[list[tuple[int, int]]]:
+    """在交叉点拆分骨架为简单分支链，返回逐条遍历的坐标列表。
+
+    Args:
+        skeleton: 二值骨架图 (H x W)，True = 前景像素
+        min_branch_length: 分支最小长度，小于此值被过滤
+
+    Returns:
+        list of ordered (x, y) coordinate lists, 每条是一个无分支的简单链
     """
-    Nearest-neighbor 排序：将散点连成连续路径。
+    # 1. 计算 8-连通邻居数
+    kernel = np.array([[1, 1, 1],
+                       [1, 0, 1],
+                       [1, 1, 1]], dtype=np.uint8)
+    nbr_count = convolve(skeleton.astype(np.uint8), kernel, mode='constant', cval=0)
+    nbr_count = nbr_count * skeleton
 
-    因为骨架化输出的点集接近连续，nearest-neighbor 就足够。
-    对长路径（>500 点）采用采样加速——取 1/4 锚点排序后插回。
+    # 2. 标记交叉点（邻居数 > 2）
+    junctions = (nbr_count > 2) & skeleton
+
+    # 3. 移除交叉点，骨架分裂为独立分支
+    branch_mask = skeleton & ~junctions
+
+    # 4. 8-connectivity 连通分量标记
+    struct8 = np.ones((3, 3), dtype=bool)
+    labeled, n = label(branch_mask, structure=struct8)
+
+    # 5. 遍历每个分量
+    branches = []
+    for i in range(1, n + 1):
+        component = (labeled == i)
+        ordered = _walk_chain(component)
+        if len(ordered) >= min_branch_length:
+            branches.append(ordered)
+
+    return branches
+
+
+def _walk_chain(mask: np.ndarray) -> list[tuple[int, int]]:
+    """从端点遍历一条简单链（无分支），返回有序坐标列表。
+
+    对闭合环路（无端点），从最上方像素开始绕行。
+
+    Args:
+        mask: 单条简单链的二值图 (H x W)，True = 前景像素
+
+    Returns:
+        ordered (x, y) coordinate list
     """
-    n = len(points)
-    if n <= 2:
-        return points
+    ys, xs = np.where(mask)
+    if len(xs) == 0:
+        return []
 
-    # 长路径优化：分治排序
-    if n > 500:
-        # 取 1/4 锚点做全局排序
-        step = max(1, n // 250)
-        anchor_indices = list(range(0, n, step))
-        anchor_points = [points[i] for i in anchor_indices]
-        anchor_ordered = _nearest_neighbor_sort(anchor_points)
+    points = set(zip(xs.tolist(), ys.tolist()))
 
-        # 用锚点顺序重建全序列
-        result = []
-        used = set(anchor_indices)
-        # 为每对相邻锚点插入中间的原始点
-        for ai, anchor_idx in enumerate(anchor_ordered):
-            orig_idx = anchor_indices[anchor_points.index(anchor_idx)]
-            # 插入此锚点之前的点（按原始顺序）
-            start = (anchor_indices[anchor_indices.index(orig_idx) - 1] + 1) if ai > 0 else 0
-            end = orig_idx
-            for j in range(start, end):
-                if j not in used:
-                    result.append(points[j])
-                    used.add(j)
-            result.append(points[orig_idx])
-            used.add(orig_idx)
-        # 追加剩余点
-        for j in range(n):
-            if j not in used:
-                result.append(points[j])
-        return result
+    def count_neighbors(px: int, py: int) -> int:
+        """计算 (px, py) 在 points 中的 8-连通邻居数。"""
+        count = 0
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                if (px + dx, py + dy) in points:
+                    count += 1
+        return count
 
-    return _nearest_neighbor_sort(points)
+    # 找端点（邻居数 ≤ 1）
+    endpoints = [(x, y) for (x, y) in points if count_neighbors(x, y) <= 1]
 
+    if endpoints:
+        # 从最上方的端点开始（y 最小，同 y 取 x 最小）
+        start = min(endpoints, key=lambda p: (p[1], p[0]))
+    else:
+        # 闭合环路：从最上方像素开始
+        start = min(points, key=lambda p: (p[1], p[0]))
 
-def _nearest_neighbor_sort(points: list[tuple[int, int]]) -> list[tuple[int, int]]:
-    """纯 nearest-neighbor 排序。"""
-    if len(points) <= 2:
-        return points
+    # 逐步遍历：每步找唯一的未访问 8-邻域点
+    ordered = [start]
+    visited = {start}
+    current = start
 
-    pts = list(points)
-    ordered = [pts[0]]
-    remaining_indices = set(range(1, len(pts)))
+    while True:
+        cx, cy = current
+        found = None
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                neighbor = (cx + dx, cy + dy)
+                if neighbor in points and neighbor not in visited:
+                    found = neighbor
+                    break
+            if found is not None:
+                break
 
-    while remaining_indices:
-        last_x, last_y = ordered[-1]
-        best_idx = min(
-            remaining_indices,
-            key=lambda i: (pts[i][0] - last_x) ** 2 + (pts[i][1] - last_y) ** 2,
-        )
-        ordered.append(pts[best_idx])
-        remaining_indices.remove(best_idx)
+        if found is None:
+            break
+
+        ordered.append(found)
+        visited.add(found)
+        current = found
 
     return ordered
 
