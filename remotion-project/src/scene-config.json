@@ -7,7 +7,7 @@
     "height": 1080,
     "imageStyle": "whiteboard",
     "imageAspectRatio": "16:9",
-    "drawMode": "sketch_first",
+    "drawMode": "sequential",
     "pipeline": {
       "mode": "video_first",
       "defaultSceneDuration": null
@@ -30,7 +30,9 @@
       "type": "fade",
       "durationFrames": 15
     },
-    "animationEngine": "whiteboard"
+    "animationEngine": "whiteboard",
+    "style": "ipad_sketch",
+    "styleGuide": null
   },
   "scenes": [
     {

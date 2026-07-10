@@ -1,0 +1,35 @@
+# Whiteboard Video Pipeline .gitignore
+
+# Node
+remotion-project/node_modules/
+remotion-project/out/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Output
+output/
+
+# Cache
+cache/
+
+# Environment
+.env
+*.local
+
+# macOS
+.DS_Store
+
+# Generated assets (recreated by deploy_resources.py)
+remotion-project/public/animations/
+remotion-project/public/audio/
+remotion-project/public/timeline.json
+remotion-project/public/scene-config.json
+
+# Keep bgm.mp3 and SFX
+!remotion-project/public/bgm.mp3
+!remotion-project/public/assets/sfx/

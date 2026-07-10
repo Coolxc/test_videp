@@ -1,16 +1,14 @@
 /**
- * WhiteboardVideo.tsx - SVG 白板视频主合成组件
+ * WhiteboardVideo.tsx - 白板视频主合成组件（PNG Mask Reveal 模式）
  *
- * 用 SVGDrawAnimation 替代了旧版的 <Video> 嵌入预渲染 MP4。
- * 所有场景元素通过 SVG stroke-dashoffset 路径动画呈现"笔尖生长"效果。
+ * 用 MaskRevealAnimation 替代了旧版的 SVGDrawAnimation。
+ * 核心变化：不再用 SVG 路径重绘图片，而是用中心线蒙版揭示原始 PNG。
  *
- * 主要变化（相对旧版）：
- *  - Video → SVGDrawAnimation（核心变化）
- *  - 背景色 #F6F1E3 → #FFFFFF（纯白纸）
- *  - Grid 移除（纯白纸无需格线）
- *  - 场景间加入 PaperPullTransition 拉纸转场
- *  - DrawingSFX 简化为单层（不再区分 sketch/colorize）
- *  - 接收 svgData prop 替代 animations/ 目录下的 MP4
+ * 主要变化（v07 → v08）：
+ *  - SVGDrawAnimation → MaskRevealAnimation（核心变化）
+ *  - 数据从 svg-data.json → drawing-paths.json
+ *  - 每个场景直接渲染 PNG 原图（零质量损失）
+ *  - 保留 PaperPullTransition 拉纸转场、字幕、音效
  */
 
 import React from "react";
@@ -30,9 +28,9 @@ import type {
   SceneTimeline,
   ElementTimeline,
   StoryboardScene,
-  SVGSceneData,
+  DrawingSceneData,
 } from "./types";
-import SVGDrawAnimation from "./SVGDrawAnimation";
+import MaskRevealAnimation from "./MaskRevealAnimation";
 import PaperPullTransition from "./PaperPullTransition";
 
 // ========== Design Tokens ==========
@@ -391,13 +389,13 @@ const SceneBackground: React.FC<SceneBackgroundProps> = ({ children }) => (
 interface WhiteboardVideoProps {
   timeline: Timeline;
   storyboard: any;
-  svgData: Record<string, SVGSceneData>;
+  drawingPathsData: Record<string, DrawingSceneData>;
 }
 
 export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({
   timeline,
   storyboard,
-  svgData,
+  drawingPathsData,
 }) => {
   const totalF = timeline.totalFrames;
   const hasAudio = storyboard.meta.pipeline.mode === "full";
@@ -432,9 +430,9 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({
 
         const isLast = i === timeline.scenes.length - 1;
 
-        // SVG 路径数据
-        const sceneSvg = svgData[tScene.id];
-        const hasSvgData = sceneSvg && sceneSvg.elements && sceneSvg.elements.length > 0;
+        // 蒙版路径数据
+        const scenePaths = drawingPathsData[tScene.id];
+        const hasDrawingPaths = scenePaths && scenePaths.paths && scenePaths.paths.length > 0;
 
         // Build subtitle segments from element narrations
         const subSegs = tScene.elements
@@ -462,15 +460,16 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({
             durationInFrames={tScene.durationFrames}
           >
             <SceneBackground>
-              {/* SVG 路径动画（替代旧版 Video） */}
-              {hasSvgData ? (
-                <SVGDrawAnimation
-                  elements={sceneSvg.elements}
+              {/* PNG 蒙版揭示动画（替代旧版 SVG 路径重绘） */}
+              {hasDrawingPaths ? (
+                <MaskRevealAnimation
+                  imageSrc={staticFile(`images/${tScene.id}.png`)}
+                  drawingPaths={scenePaths.paths}
                   drawAtFrames={tScene.elements?.map((e) => e.drawAtFrame) || []}
                   drawDurations={
                     tScene.elements?.map((e) => e.drawDurationFrames) || []
                   }
-                  viewBox={sceneSvg.viewBox}
+                  brushRadius={50}
                   showHand={!storyboard.meta?.noHand}
                 />
               ) : (

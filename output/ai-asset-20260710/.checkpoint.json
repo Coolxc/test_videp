@@ -1,0 +1,46 @@
+{
+  "validate": {
+    "done": true,
+    "timestamp": 1783693342.2635152,
+    "data": {}
+  },
+  "validate_images": {
+    "done": true,
+    "timestamp": 1783693342.6820245,
+    "data": {
+      "issues": 0
+    }
+  },
+  "timeline": {
+    "done": true,
+    "timestamp": 1783693342.6857216,
+    "data": {
+      "totalFrames": 819
+    }
+  },
+  "sfx": {
+    "done": true,
+    "timestamp": 1783693342.6878846,
+    "data": {}
+  },
+  "drawing_paths": {
+    "done": true,
+    "timestamp": 1783693349.0986392,
+    "data": {}
+  },
+  "subtitles": {
+    "done": true,
+    "timestamp": 1783693349.134152,
+    "data": {}
+  },
+  "remotion": {
+    "done": true,
+    "timestamp": 1783693516.23219,
+    "data": {}
+  },
+  "publish": {
+    "done": true,
+    "timestamp": 1783693516.2364893,
+    "data": {}
+  }
+}

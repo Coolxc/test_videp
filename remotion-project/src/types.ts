@@ -1,26 +1,39 @@
 /**
- * types.ts - TypeScript type definitions for the SVG whiteboard video pipeline.
+ * types.ts - TypeScript type definitions for the whiteboard video pipeline.
  *
  * All types use scene-relative frame references (not global frame numbers)
  * for per-Scene internal timing.
  *
- * Major changes from old pipeline:
- *  - SVGPathData / SVGElementData / SVGSceneData for SVG path animation
- *  - ElementTimeline simplified: drawAtFrame/drawDurationFrames only (no sketch/colorize)
+ * Major changes from v07 → v08 (PNG Mask Reveal):
+ *  - SVGPathData / SVGElementData / SVGSceneData → DrawingPath / DrawingSceneData
+ *  - ElementTimeline unchanged: drawAtFrame/drawDurationFrames
  *  - Timeline gains transitionDurationFrames, drawMode fixed to "sequential"
  */
 
-// ========== SVG Path Animation Types ==========
+// ========== Mask Reveal (Drawing Path) Types ==========
 
+export interface DrawingPath {
+  d: string;           // SVG path d 属性（中心线 polyline）
+  elementId: string;   // 归属元素 ID
+}
+
+export interface DrawingSceneData {
+  paths: DrawingPath[];
+}
+
+// ========== SVG Path Animation Types (Deprecated in v08) ==========
+
+/** @deprecated Replaced by DrawingPath + MaskRevealAnimation */
 export interface SVGPathData {
-  d: string;           // SVG path data
-  stroke: string;      // 描边颜色
+  d: string;
+  stroke: string;
   strokeWidth: number;
-  fill: string;        // "none" 或颜色
-  length: number;      // 路径总长度（用于 stroke-dashoffset 动画）
+  fill: string;
+  length: number;
   type: "stroke" | "fill";
 }
 
+/** @deprecated Replaced by DrawingSceneData */
 export interface SVGElementData {
   id: string;
   paths: SVGPathData[];
@@ -28,6 +41,7 @@ export interface SVGElementData {
   narration?: string;
 }
 
+/** @deprecated Replaced by DrawingSceneData */
 export interface SVGSceneData {
   sceneId: string;
   viewBox: string;

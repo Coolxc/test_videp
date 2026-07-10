@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-deploy_resources.py - Copy generated assets to remotion-project/ for SVG pipeline.
+deploy_resources.py - Copy generated assets to remotion-project/ for Mask Reveal pipeline.
 
 Copies:
-  - SVG data (svg-data.json) → public/svg-data/ + src/
+  - Drawing paths (drawing-paths.json) → src/ (for TypeScript import)
+  - Scene PNG images → public/images/ (for MaskRevealAnimation)
   - TTS audio files → public/audio/
   - SFX files → public/assets/sfx/
   - BGM → public/bgm.mp3 (if not exists)
@@ -39,23 +40,25 @@ def deploy_resources(storyboard_path: str, output_dir: str = None,
     remotion_src = PROJECT_ROOT / "remotion-project" / "src"
     os.makedirs(remotion_public, exist_ok=True)
 
-    # ── 1. SVG 数据（替代旧版 MP4 动画）──
-    svg_src_dir = Path(output_dir) / "svg_data"
-    svg_dst_dir = remotion_public / "svg-data"
-    os.makedirs(svg_dst_dir, exist_ok=True)
-
-    if svg_src_dir.exists():
-        for f in svg_src_dir.glob("*.json"):
-            shutil.copy2(f, svg_dst_dir / f.name)
-            print(f"  SVG data: {f.name}")
+    # ── 1. 蒙版路径数据（替代旧版 SVG 矢量化数据）──
+    drawing_src_dir = Path(output_dir) / "drawing_paths"
+    drawing_merged_src = drawing_src_dir / "drawing-paths.json"
+    if drawing_merged_src.exists():
+        shutil.copy2(drawing_merged_src, remotion_src / "drawing-paths.json")
+        print(f"  Drawing paths (src): drawing-paths.json")
     else:
-        print(f"  [WARN] No SVG data dir: {svg_src_dir}")
+        print(f"  [WARN] No drawing paths data: {drawing_merged_src}")
 
-    # 复制 svg-data.json 到 src/ 用于 TypeScript import
-    svg_merged_src = svg_src_dir / "svg-data.json"
-    if svg_merged_src.exists():
-        shutil.copy2(svg_merged_src, remotion_src / "svg-data.json")
-        print(f"  SVG data (src): svg-data.json")
+    # ── 1b. 场景 PNG 图片 → public/images/ ──
+    images_src = Path(output_dir) / "images"
+    images_dst = remotion_public / "images"
+    os.makedirs(images_dst, exist_ok=True)
+    if images_src.exists():
+        for f in images_src.glob("*.png"):
+            shutil.copy2(f, images_dst / f.name)
+            print(f"  Image: {f.name}")
+    else:
+        print(f"  [WARN] No images dir: {images_src}")
 
     # ── 2. Audio ──
     if copy_audio:

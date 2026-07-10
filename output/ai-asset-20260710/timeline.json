@@ -1,0 +1,59 @@
+{
+  "fps": 30,
+  "totalFrames": 819,
+  "transitionDurationFrames": 25,
+  "drawMode": "sequential",
+  "scenes": [
+    {
+      "id": "scene1",
+      "startFrame": 0,
+      "durationFrames": 306,
+      "elements": [
+        {
+          "id": "person",
+          "drawAtFrame": 0,
+          "drawDurationFrames": 108,
+          "narration": "还在单纯靠出卖劳动时间，"
+        },
+        {
+          "id": "clock",
+          "drawAtFrame": 118,
+          "drawDurationFrames": 108,
+          "narration": "来换取那点微薄的工资吗？"
+        },
+        {
+          "id": "money",
+          "drawAtFrame": 236,
+          "drawDurationFrames": 30,
+          "narration": ""
+        }
+      ]
+    },
+    {
+      "id": "scene2",
+      "startFrame": 281,
+      "durationFrames": 268,
+      "elements": [
+        {
+          "id": "brain",
+          "drawAtFrame": 0,
+          "drawDurationFrames": 198,
+          "narration": "停止做执行者，开始做拥有高阶判断力的决策者。"
+        }
+      ]
+    },
+    {
+      "id": "scene3",
+      "startFrame": 524,
+      "durationFrames": 295,
+      "elements": [
+        {
+          "id": "pyramid",
+          "drawAtFrame": 0,
+          "drawDurationFrames": 225,
+          "narration": "从执行到管理再到决策，这是每一个职场人的进阶之路。"
+        }
+      ]
+    }
+  ]
+}

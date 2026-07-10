@@ -8,9 +8,12 @@ av>=10.0.0
 scipy>=1.10.0
 pydub>=0.25.1
 
+# Skeleton-based path extraction (centerline extraction for mask reveal)
+scikit-image>=0.22.0
+
 # TTS (optional for full mode)
 tencentcloud-sdk-python>=3.0.1000
 python-dotenv>=1.0.0
 
-# Image validation (optional)
+# Image processing (validation + centerline extraction)
 Pillow>=9.0.0

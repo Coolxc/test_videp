@@ -1,10 +1,10 @@
 /**
  * index.tsx - Remotion 根组件
  *
- * 载入 timeline.json + scene-config.json + svg-data.json，
+ * 载入 timeline.json + scene-config.json + drawing-paths.json，
  * 传递给 WhiteboardVideo 组件进行渲染。
  *
- * SVG 数据通过 deploy_resources.py 从 Python 管线复制到 src/。
+ * 数据通过 deploy_resources.py 从 Python 管线复制到 src/。
  */
 
 import React from "react";
@@ -13,7 +13,7 @@ import { WhiteboardVideo } from "./WhiteboardVideo";
 
 import timeline from "./timeline.json";
 import sceneConfig from "./scene-config.json";
-import svgData from "./svg-data.json";
+import drawingPathsData from "./drawing-paths.json";
 
 const FPS = 30;
 const WIDTH = 1920;
@@ -27,7 +27,7 @@ const RemotionRoot: React.FC = () => {
         <WhiteboardVideo
           timeline={timeline as any}
           storyboard={sceneConfig}
-          svgData={svgData as any}
+          drawingPathsData={drawingPathsData as any}
         />
       )}
       durationInFrames={timeline.totalFrames || 300}

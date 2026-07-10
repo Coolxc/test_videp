@@ -8,7 +8,7 @@ make_video.py - SVG 路径动画管线的主入口。
   - full: 完整管线（含 TTS + 音频混音）
 
 核心变化（相对旧版）：
-  - Step 8: generate_animations → vectorize_images（SVG 路径替代 MP4 动画）
+  - Step 8: vectorize_images → extract_drawing_paths（PNG Mask Reveal 替代 SVG 重绘）
   - 移除 detect_regions、ffprobe 校正步骤
   - 不再依赖外部动画引擎（generate_whiteboard.py）
 
@@ -201,7 +201,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
         )
         _write_checkpoint(output_dir, "timeline", {"totalFrames": timeline["totalFrames"]})
     else:
-        with open(timeline_path) as f:
+        with open(timeline_path, encoding="utf-8") as f:
             timeline = json.load(f)
 
     # ── Step 7: Generate default SFX ──
@@ -210,20 +210,20 @@ def make_video(storyboard_path: str, mode: str = "video_first",
         sfx_mod.generate_sfx()
         _write_checkpoint(output_dir, "sfx")
 
-    # ── Step 8: Vectorize images (SVG 路径数据，替代旧版 generate_animations) ──
-    if not _step_done(output_dir, "vectorize"):
-        vec_mod = _import_step("vectorize_images")
-        vec_mod.vectorize_all_scenes(
+    # ── Step 8: Extract drawing paths (中心线路径，替代旧版 SVG 矢量化) ──
+    if not _step_done(output_dir, "drawing_paths"):
+        paths_mod = _import_step("extract_drawing_paths")
+        paths_mod.extract_all_scenes(
             str(output_dir / "storyboard.json"),
             str(images_dir),
             str(output_dir),
         )
-        _write_checkpoint(output_dir, "vectorize")
+        _write_checkpoint(output_dir, "drawing_paths")
 
     # ── Step 9: Generate subtitles (无 ffprobe 校正) ──
     subs_path = output_dir / "subtitles.srt"
     if not _step_done(output_dir, "subtitles"):
-        with open(timeline_path) as f:
+        with open(timeline_path, encoding="utf-8") as f:
             timeline = json.load(f)
         subs_mod = _import_step("generate_subtitles")
         subs_mod.generate_srt(timeline, storyboard, str(subs_path))
@@ -243,7 +243,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
     # ── Step 11: Deploy resources + Remotion render ──
     video_output = output_dir / ("video.mp4" if mode == "full" else "video_silent.mp4")
     if not _step_done(output_dir, "remotion"):
-        # Deploy resources (SVG data, not MP4)
+        # Deploy resources (drawing paths + PNG images, not SVG/MP4)
         deploy_mod = _import_step("deploy_resources")
         deploy_mod.deploy_resources(
             storyboard_path, str(output_dir),
@@ -258,7 +258,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
         print(f"\n  Rendering with Remotion...")
         print(f"  Output: {video_output}")
         result = subprocess.run(
-            ["npx", "remotion", "render", "src/index.tsx", "VideoMain",
+            ["npx.cmd", "remotion", "render", "src/index.tsx", "VideoMain",
              str(video_output), "--overwrite"],
             cwd=str(remotion_dir),
             capture_output=True, text=True,
