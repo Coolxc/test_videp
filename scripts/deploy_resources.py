@@ -96,7 +96,7 @@ def deploy_resources(storyboard_path: str, output_dir: str = None,
             img = cv2.imread(str(hand_src), cv2.IMREAD_UNCHANGED)
             if img is not None:
                 h, w = img.shape[:2]
-                scale = 200 / max(h, w)
+                scale = 600 / max(h, w)
                 new_w, new_h = int(w * scale), int(h * scale)
                 small = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
                 cv2.imwrite(str(hand_dst), small)

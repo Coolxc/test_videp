@@ -266,9 +266,8 @@ def _assign_paths_to_elements(
             "cy": eb["y"] + eb["h"] / 2,
         })
 
-    result = []
-    assigned = set()
-
+    # 第一步：为每条路径确定归属元素
+    path_elem_map: dict[int, str] = {}
     for i, rp in enumerate(raw_paths):
         rb = rp["bbox"]
         cx = rb["x"] + rb["w"] / 2
@@ -278,25 +277,29 @@ def _assign_paths_to_elements(
         for pe in padded:
             if pe["x1"] <= cx <= pe["x2"] and pe["y1"] <= cy <= pe["y2"]:
                 matched = pe["id"]
-                assigned.add(i)
                 break
 
-        if matched:
-            result.append({"d": rp["d"], "elementId": matched})
+        if not matched:
+            # 未匹配 → 最近元素
+            nearest = min(
+                padded,
+                key=lambda pe: ((pe["cx"] - cx) ** 2 + (pe["cy"] - cy) ** 2),
+            )
+            matched = nearest["id"]
 
-    # 未分配路径 → 最近元素
-    for i, rp in enumerate(raw_paths):
-        if i in assigned:
-            continue
-        rb = rp["bbox"]
-        cx = rb["x"] + rb["w"] / 2
-        cy = rb["y"] + rb["h"] / 2
+        path_elem_map[i] = matched
 
-        nearest = min(
-            padded,
-            key=lambda pe: ((pe["cx"] - cx) ** 2 + (pe["cy"] - cy) ** 2),
-        )
-        result.append({"d": rp["d"], "elementId": nearest["id"]})
+    # 第二步：按 elements 列表顺序分组输出，元素内按路径长度降序排列
+    # 长线条（外轮廓/框架）先画 → 短线条（内部细节/装饰）后画
+    # 效果：先画框架再填充细节，更像真人的绘画顺序
+    result = []
+    for elem in elements:
+        eid = elem["id"]
+        elem_paths = [(i, rp) for i, rp in enumerate(raw_paths) if path_elem_map[i] == eid]
+        # 按路径长度降序：外轮廓线最长，优先绘制
+        elem_paths.sort(key=lambda x: x[1]["length"], reverse=True)
+        for i, rp in elem_paths:
+            result.append({"d": rp["d"], "elementId": eid})
 
     return result
 

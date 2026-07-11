@@ -8,7 +8,7 @@
  *  - SVGDrawAnimation → MaskRevealAnimation（核心变化）
  *  - 数据从 svg-data.json → drawing-paths.json
  *  - 每个场景直接渲染 PNG 原图（零质量损失）
- *  - 保留 PaperPullTransition 拉纸转场、字幕、音效
+ *  - 保留 HandWipeTransition 手擦除转场、字幕、音效
  */
 
 import React from "react";
@@ -31,7 +31,7 @@ import type {
   DrawingSceneData,
 } from "./types";
 import MaskRevealAnimation from "./MaskRevealAnimation";
-import PaperPullTransition from "./PaperPullTransition";
+import HandWipeTransition from "./HandWipeTransition";
 
 // ========== Design Tokens ==========
 const C = {
@@ -469,6 +469,7 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({
                   drawDurations={
                     tScene.elements?.map((e) => e.drawDurationFrames) || []
                   }
+                  elementIds={tScene.elements?.map((e) => e.id) || []}
                   brushRadius={50}
                   showHand={!storyboard.meta?.noHand}
                 />
@@ -503,9 +504,9 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({
                 />
               )}
 
-              {/* Paper pull transition (场景间转场) */}
+              {/* Hand wipe transition (手擦除转场) */}
               {!isLast && (
-                <PaperPullTransition
+                <HandWipeTransition
                   startFrame={tScene.durationFrames - transitionFrames}
                   durationFrames={transitionFrames}
                 />

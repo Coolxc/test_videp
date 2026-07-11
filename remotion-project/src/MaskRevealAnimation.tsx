@@ -36,6 +36,7 @@ interface MaskRevealProps {
   drawingPaths: DrawingPath[];    // 中心线路径列表
   drawAtFrames: number[];         // 每组路径的起始帧（scene-relative）
   drawDurations: number[];        // 每组路径的绘制帧数
+  elementIds?: string[];          // 元素 ID 顺序（与 drawAtFrames 对齐）
   brushRadius?: number;           // 蒙版笔刷半径 (px)
   showHand?: boolean;
 }
@@ -155,8 +156,9 @@ const DrawingHand: React.FC<DrawingHandProps> = ({
   );
   if (!currentPath) return null;
 
-  const { d, pathStart, pathDuration } = currentPath;
+  const { path, pathStart, pathDuration } = currentPath;
   let { progress } = currentPath;
+  const d = path.d;
 
   // 保护性检查：getLength 失败时静默隐藏画手
   let length: number;
@@ -179,12 +181,12 @@ const DrawingHand: React.FC<DrawingHandProps> = ({
       src={staticFile("assets/writing-hand-small.png")}
       style={{
         position: "absolute",
-        left: point.x - 10,
-        top: point.y - 30,
-        width: 120,
-        height: 120,
-        transform: `rotate(${smoothedAngle}deg)`,
-        transformOrigin: "10px 30px",
+        left: point.x - 60,          // 笔尖 X 偏移（原图比例 17%）
+        top: point.y - 22,           // 笔尖 Y 偏移（原图比例 4.6%）
+        width: 350,                   // 手宽度占画面 18%（YouTube 标准）
+        height: 481,                  // 保持原始宽高比（872:1200）
+        transform: `rotate(${smoothedAngle * 0.3}deg)`,  // 柔和旋转（30% 角度）
+        transformOrigin: "60px 22px", // 旋转中心 = 笔尖位置
         zIndex: 100,
         pointerEvents: "none",
       }}
@@ -253,14 +255,19 @@ const MaskRevealAnimation: React.FC<MaskRevealProps> = ({
   drawingPaths,
   drawAtFrames,
   drawDurations,
+  elementIds,        // 新增
   brushRadius = 50,
   showHand = true,
 }) => {
   const frame = useCurrentFrame();
   const maskId = `reveal-mask-${frame}`;
 
-  // 确定 elementId 顺序（保持 drawingPaths 中的首次出现顺序）
+  // 确定 elementId 顺序（优先使用传入的 elementIds，与时间轴对齐）
   const elementOrder = useMemo(() => {
+    if (elementIds && elementIds.length > 0) {
+      return elementIds;
+    }
+    // fallback：从路径数据推导（保持 drawingPaths 中的首次出现顺序）
     const seen = new Set<string>();
     const order: string[] = [];
     for (const dp of drawingPaths) {
@@ -270,7 +277,7 @@ const MaskRevealAnimation: React.FC<MaskRevealProps> = ({
       }
     }
     return order;
-  }, [drawingPaths]);
+  }, [drawingPaths, elementIds]);
 
   // 预计算所有路径的时间分配
   const timedPaths = useMemo(
