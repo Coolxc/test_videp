@@ -259,6 +259,9 @@ const TextOverlay: React.FC<TextOverlayProps> = ({
 }) => {
   const { fps } = useVideoConfig();
   const drawAtFrame = (config.drawAt ?? 0) * fps;
+  if (!config || !config.text) {
+    return null;
+  }
   const durationFrames = (config.duration ?? config.text.length * 0.3) * fps;
 
   if (config.style === "fade") {

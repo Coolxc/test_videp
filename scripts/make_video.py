@@ -250,6 +250,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
             copy_animations=False,  # SVG mode
             copy_audio=(mode == "full"),
             timeline_path=str(timeline_path),
+            mode=mode,
         )
 
         # Remotion render
@@ -257,21 +258,25 @@ def make_video(storyboard_path: str, mode: str = "video_first",
         os.makedirs(str(video_output.parent), exist_ok=True)
         print(f"\n  Rendering with Remotion...")
         print(f"  Output: {video_output}")
+        npx_cmd = "npx.cmd" if sys.platform == "win32" else "npx"
+        # Use --output with filename only to avoid cross-platform path format issues
+        output_name = video_output.name
         result = subprocess.run(
-            ["npx.cmd", "remotion", "render", "src/index.tsx", "VideoMain",
-             str(video_output), "--overwrite"],
+            [npx_cmd, "remotion", "render", "src/index.tsx", "VideoMain",
+             "--output", output_name, "--overwrite"],
             cwd=str(remotion_dir),
             capture_output=True, text=True,
         )
         print(result.stdout)
         if result.returncode == 0:
-            if video_output.exists():
+            rendered = remotion_dir / output_name
+            if rendered.exists():
+                shutil.move(str(rendered), str(video_output))
                 size_mb = os.path.getsize(video_output) / (1024 * 1024)
                 print(f"  Remotion render complete: {video_output} ({size_mb:.1f} MB)")
                 _write_checkpoint(output_dir, "remotion")
             else:
                 print(f"  [WARN] Render returned success but file not found at expected path")
-                print(f"  Searching for output file...")
                 # Search for recently created mp4 files
                 import glob as _glob
                 recent = sorted(_glob.glob(str(remotion_dir / "**/*.mp4"), recursive=True),
@@ -279,7 +284,6 @@ def make_video(storyboard_path: str, mode: str = "video_first",
                 if recent:
                     for f in recent:
                         print(f"    Found: {f}")
-                    # Copy latest to expected output
                     shutil.copy2(recent[0], str(video_output))
                     print(f"  Copied to: {video_output}")
                     _write_checkpoint(output_dir, "remotion")

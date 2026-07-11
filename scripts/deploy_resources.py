@@ -24,10 +24,15 @@ def deploy_resources(storyboard_path: str, output_dir: str = None,
                       copy_animations: bool = True,
                       copy_audio: bool = True,
                       copy_sfx: bool = True,
-                      timeline_path: str = None):
+                      timeline_path: str = None,
+                      mode: str = None):
     """Deploy generated resources to remotion-project/."""
     with open(storyboard_path, "r", encoding="utf-8") as f:
         storyboard = json.load(f)
+
+    # Override pipeline mode in scene-config (e.g. "video_first" won't have audio files)
+    if mode is not None:
+        storyboard.setdefault("meta", {}).setdefault("pipeline", {})["mode"] = mode
 
     meta = storyboard.get("meta", {})
     topic = meta.get("topic", "untitled")
@@ -117,12 +122,19 @@ def _update_scene_config(storyboard: dict, remotion_public: Path,
     """Generate scene-config.json and timeline.json for Remotion consumption."""
     scenes_out = []
     for scene in storyboard.get("scenes", []):
+        raw_overlay = scene.get("textOverlay")
+        # Normalize: LLM sometimes generates textOverlay as a plain string instead of an object
+        if isinstance(raw_overlay, str):
+            raw_overlay = {"text": raw_overlay, "style": "handwritten"}
+        elif not isinstance(raw_overlay, dict):
+            raw_overlay = None
+
         scenes_out.append({
             "id": scene["id"],
             "imagePrompt": scene.get("imagePrompt", ""),
             "voiceText": scene.get("voiceText", ""),
             "duration": scene.get("duration", None),
-            "textOverlay": scene.get("textOverlay", None),
+            "textOverlay": raw_overlay,
             "elements": scene.get("elements", []),
         })
 
