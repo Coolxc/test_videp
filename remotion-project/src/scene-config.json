@@ -1,150 +1,170 @@
 {
   "meta": {
-    "title": "AI时代资产积累指南",
-    "topic": "ai-asset-accumulation",
+    "title": "AI时代资产积累的开篇逻辑",
+    "topic": "ai-era-asset-accumulation",
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
     "style": "ipad_sketch",
+    "penStyle": "marker",
     "pipeline": {
       "mode": "video_first"
-    },
-    "tts": {
-      "provider": "tencent",
-      "voice": "602005",
-      "speed": 1.1
     },
     "subtitle": {
       "enabled": true,
       "fontSize": 36
     },
-    "fps": 30,
-    "width": 1920,
-    "height": 1080,
-    "imageStyle": "whiteboard",
-    "styleGuide": null,
-    "imageAspectRatio": "16:9",
-    "drawMode": "sequential",
-    "camera": {
-      "enabled": true,
-      "maxZoom": 2.5,
-      "transitionMs": 800
-    },
     "transition": {
-      "type": "fade",
-      "durationFrames": 15
-    },
-    "animationEngine": "whiteboard"
+      "type": "pen_wipe",
+      "durationFrames": 25
+    }
   },
   "scenes": [
     {
       "id": "scene1",
-      "imagePrompt": "A minimalist sketch of a stick figure running inside a giant hourglass, sand falling rapidly. Blue marker style on white background.",
-      "voiceText": "还在单纯靠出卖“劳动时间”来换取工资吗？在AI时代，这已经不再是稳固的资产。",
+      "imagePrompt": "A hand-drawn iPad sketch, white background with blue marker pen lines. Left side: a large hourglass with sand flowing quickly downward. Below the hourglass, a stick figure sweating while running at a computer desk. No text, no letters, no numbers, no punctuation. Minimalist doodle style, simple and meaningful.",
+      "voiceText": "还在靠出卖“劳动时间”换取工资吗？在AI时代，这已不再是稳固的资产。",
       "duration": null,
       "textOverlay": null,
       "elements": [
         {
           "id": "hourglass",
-          "description": "一个巨大的沙漏，象征流逝的时间",
+          "description": "大沙漏，外轮廓，从上向下绘制",
+          "narration": "还在靠出卖“劳动时间”换取工资吗？",
           "bbox": {
-            "x": 460,
-            "y": 80,
-            "w": 400,
-            "h": 920
-          },
-          "narration": "还在单纯靠出卖“劳动时间”来换取工资吗？",
-          "drawStrategy": "top_down"
+            "x": 710,
+            "y": 90,
+            "w": 500,
+            "h": 700
+          }
         },
         {
-          "id": "worker",
-          "description": "在沙漏底部疲于奔命的火柴人",
+          "id": "sand_flow",
+          "description": "沙漏中心的沙子流动线条",
+          "narration": "在AI时代，这已不再是稳固的资产。",
           "bbox": {
-            "x": 1100,
-            "y": 650,
-            "w": 350,
-            "h": 350
-          },
-          "narration": "在AI时代，这已经不再是稳固的资产。",
-          "drawStrategy": "spatial_walk"
+            "x": 830,
+            "y": 400,
+            "w": 260,
+            "h": 250
+          }
+        },
+        {
+          "id": "stick_figure_worker",
+          "description": "在沙漏阴影下奔跑的火柴人，旁边有代表工资/劳动时间的图形符号",
+          "narration": "在AI时代，这已不再是稳固的资产。",
+          "bbox": {
+            "x": 700,
+            "y": 750,
+            "w": 300,
+            "h": 280
+          }
+        },
+        {
+          "id": "text_wage_time",
+          "description": "文字标注：“工资/劳动时间”（手写体）",
+          "narration": "在AI时代，这已不再是稳固的资产。",
+          "bbox": {
+            "x": 1050,
+            "y": 780,
+            "w": 250,
+            "h": 100
+          }
         }
       ]
     },
     {
       "id": "scene2",
-      "imagePrompt": "A long lever with a fulcrum labeled 'AI'. On one end, a stick figure stands. On the other end, a large pile of gold coins and a patent document icon are being lifted.",
-      "voiceText": "真正的资产，是能把钱放进你口袋的系统。学会把AI当成杠杆，去放大你的生产力。",
+      "imagePrompt": "A hand-drawn iPad sketch, white background with blue marker pen lines. Center: a triangular fulcrum symbolizing AI. A long lever across the fulcrum, with a simple stick figure standing lightly on one end, and the other end piled high with gold coins, patent books, and cash flow icons. No text, no letters, no numbers, no punctuation. Minimalist doodle style, emphasis on the lever mechanism.",
+      "voiceText": "真正的资产是能产生被动现金流的系统。学会把AI当成杠杆，去放大你的生产力。",
       "duration": null,
       "textOverlay": null,
       "elements": [
         {
-          "id": "lever_base",
-          "description": "标注有AI字样的三角形支点",
+          "id": "fulcrum",
+          "description": "三角形支点，代表AI",
+          "narration": "真正的资产是能产生被动现金流的系统。",
           "bbox": {
-            "x": 860,
-            "y": 750,
-            "w": 200,
-            "h": 250
-          },
-          "narration": "真正的资产，是能把钱放进你口袋的系统。",
-          "drawStrategy": "outline_first"
-        },
-        {
-          "id": "lever_arm",
-          "description": "横跨支点的长杠杆",
-          "bbox": {
-            "x": 150,
+            "x": 420,
             "y": 520,
-            "w": 1620,
-            "h": 80
-          },
-          "narration": "学会把AI当成杠杆，",
-          "drawStrategy": "left_right"
+            "w": 160,
+            "h": 180
+          }
         },
         {
-          "id": "wealth_assets",
-          "description": "被杠杆撬起的一堆金币和专利证书",
+          "id": "lever",
+          "description": "横跨支点的长直线，从左向右横拉",
+          "narration": "学会把AI当成杠杆，",
           "bbox": {
-            "x": 1400,
-            "y": 200,
-            "w": 400,
-            "h": 350
-          },
+            "x": 120,
+            "y": 530,
+            "w": 1600,
+            "h": 15
+          }
+        },
+        {
+          "id": "text_ai",
+          "description": "支点上手写“AI”文字",
+          "narration": "学会把AI当成杠杆，",
+          "bbox": {
+            "x": 450,
+            "y": 440,
+            "w": 160,
+            "h": 130
+          }
+        },
+        {
+          "id": "wealth_icons",
+          "description": "杠杆右侧堆叠的金币、专利证书、现金流图标",
           "narration": "去放大你的生产力。",
-          "drawStrategy": "bottom_up"
+          "bbox": {
+            "x": 1600,
+            "y": 250,
+            "w": 240,
+            "h": 260
+          }
         }
       ]
     },
     {
       "id": "scene3",
-      "imagePrompt": "A glowing outline of a human brain in the center. Inside the brain, the word '判断力' (Judgment) is written in bold, stylized Chinese characters.",
-      "voiceText": "投资头脑这个最强大的资产。从执行者，转变为拥有高阶判断力的决策者。",
+      "imagePrompt": "A hand-drawn iPad sketch, white background with blue marker pen lines. Center: a large glowing brain outline. From the center of the brain, radiating short dashed lines indicating outer glow. No text, no letters, no numbers, no punctuation. Minimalist doodle style, focus on the brain shape and light rays.",
+      "voiceText": "投资头脑这个唯一的资产。从单纯的“执行者”，转变为拥有高阶判断力的“决策者”。",
       "duration": null,
-      "textOverlay": {
-        "text": "如何积累AI时代的“资产”？",
-        "style": "handwritten"
-      },
+      "textOverlay": null,
       "elements": [
         {
           "id": "brain_outline",
-          "description": "简洁的大脑轮廓线，带有放射状光芒",
+          "description": "大脑的左右半球轮廓",
+          "narration": "投资头脑这个唯一的资产。",
           "bbox": {
-            "x": 660,
-            "y": 200,
-            "w": 600,
-            "h": 600
-          },
-          "narration": "投资头脑这个最强大的资产。",
-          "drawStrategy": "center_out"
+            "x": 560,
+            "y": 290,
+            "w": 800,
+            "h": 500
+          }
         },
         {
-          "id": "judgment_text",
-          "description": "大脑中心的“判断力”手写文字",
+          "id": "brain_glow",
+          "description": "从大脑中心向外扩散的放射状短线条，体现光芒感",
+          "narration": "从单纯的“执行者”，",
+          "bbox": {
+            "x": 760,
+            "y": 390,
+            "w": 400,
+            "h": 300
+          }
+        },
+        {
+          "id": "text_judgment",
+          "description": "光芒中心手写加粗文字：“判断力”",
+          "narration": "转变为拥有高阶判断力的“决策者”。",
           "bbox": {
             "x": 810,
-            "y": 440,
+            "y": 500,
             "w": 300,
-            "h": 100
-          },
-          "narration": "从执行者，转变为拥有高阶判断力的决策者。",
-          "drawStrategy": "spatial_walk"
+            "h": 80
+          }
         }
       ]
     }

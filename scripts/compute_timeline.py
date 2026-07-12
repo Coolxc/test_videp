@@ -36,6 +36,8 @@ FRAME_RATE = 30
 ELEMENT_GAP_FRAMES = 10           # 元素间停顿（~0.33s），画手抬起移位
 HOLD_FRAMES = 45                   # 场景末尾 hold 静态画面（~1.5s）
 TRANSITION_FRAMES = 25             # 转场帧数（~0.83s），被下一场景的白纸覆盖
+ANIMATION_DELAY_FRAMES = 15        # 元素画完后到动画开始的延迟（~0.5s）
+ANIMATION_FREEZE_MARGIN = 15       # 转场前动画冻结余量（~0.5s）
 MIN_ELEMENT_DRAW_FRAMES = 30       # 单元素最小绘制帧数（~1.0s）
 CHARS_PER_SECOND = 4.0             # 中文旁白语速
 NARRATION_MARGIN = 1.2             # 旁白时长余量系数
@@ -130,13 +132,28 @@ def compute_timeline_entry(
     timeline_elements = []
     current_frame = draw_delay
     for i, elem in enumerate(elements):
+        draw_duration = elem_draw_frames[i]
+        draw_end_frame = current_frame + draw_duration
+
+        # 后画动画时间
+        post_anim = elem.get("postAnimation")
+        if post_anim:
+            anim_start = draw_end_frame + ANIMATION_DELAY_FRAMES
+            anim_freeze = total_frames - TRANSITION_FRAMES - ANIMATION_FREEZE_MARGIN
+        else:
+            anim_start = None
+            anim_freeze = None
+
         timeline_elements.append({
             "id": elem["id"],
             "drawAtFrame": current_frame,
-            "drawDurationFrames": elem_draw_frames[i],
+            "drawDurationFrames": draw_duration,
             "narration": elem.get("narration", ""),
+            "postAnimation": post_anim,
+            "animationStartFrame": anim_start,
+            "animationFreezeFrame": anim_freeze,
         })
-        current_frame += elem_draw_frames[i]
+        current_frame += draw_duration
         if i < n - 1:
             current_frame += ELEMENT_GAP_FRAMES
 

@@ -1,23 +1,42 @@
 #!/usr/bin/env python3
 """
-make_video.py - SVG 路径动画管线的主入口。
+make_video.py - V2 白板视频管线主入口。
 
-编排从 storyboard → 最终视频的所有步骤，带 checkpoint 断点续传。
-支持两种模式：
-  - video_first: 生成无声视频 + 字幕（不需要 TTS）
-  - full: 完整管线（含 TTS + 音频混音）
+基于 Refactor 08 的完整重构流程，核心变化：
+  - 输入支持 .md（Markdown 脚本）和 .json（storyboard 兼容）
+  - Markdown → LLM 解析 → storyboard 骨架（无 bbox）
+  - Vision LLM 检测元素 bbox + 推断绘制顺序
+  - 双层路径：骨架（蒙版揭示）+ 轮廓（笔尖跟踪）
+  - 后画动画：9 种 Transform 动画
+  - PenWipe 马克笔转场
+  - --review 模式：bbox 标注预览图
 
-核心变化（相对旧版）：
-  - Step 8: vectorize_images → extract_drawing_paths（PNG Mask Reveal 替代 SVG 重绘）
-  - 移除 detect_regions、ffprobe 校正步骤
-  - 不再依赖外部动画引擎（generate_whiteboard.py）
+新流程：
+  Step 1:  validate
+  Step 2:  parse_script (Markdown → storyboard-skeleton.json / JSON 兼容)
+  Step 3:  generate_prompts (含元素布局约束)
+           ── 暂停：等用户生成 PNG ──
+  Step 4:  validate_images
+  Step 5:  detect_elements (Vision bbox)
+           ── [--review] 可选暂停 ──
+  Step 6:  tts (仅 full 模式)
+  Step 7:  compute_timeline (含后画动画时间)
+  Step 8:  generate_sfx
+  Step 9:  extract_paths (双层路径：骨架 + 轮廓)
+  Step 10: generate_subtitles
+  Step 11: mix_audio (仅 full 模式)
+  Step 12: deploy + render (Remotion)
+  Step 13: generate_publish
 
 Usage:
-  # Step 1: Generate prompts (user then creates images)
-  python scripts/make_video.py --storyboard storyboard.json --mode video-first
+  # Step 1: Parse script + Generate prompts
+  python scripts/make_video.py --input script.md --mode video-first
 
-  # Step 2: Generate video (after images are in place)
-  python scripts/make_video.py --storyboard storyboard.json --mode video-first --skip-prompts
+  # Resume after images are ready
+  python scripts/make_video.py --input script.md --mode video-first --skip-prompts
+
+  # With bbox review
+  python scripts/make_video.py --input script.md --review
 """
 
 import json
@@ -82,22 +101,41 @@ def run_step(step_name: str, output_dir: Path, skip_if_done: bool = True, **kwar
     return _write_checkpoint(output_dir, step_name)
 
 
-def make_video(storyboard_path: str, mode: str = "video_first",
+def make_video(input_path: str, mode: str = "video_first",
                skip_prompts: bool = False, audio_only: bool = False,
                video_path: str = None, draw_mode: str = "sequential",
-               no_hand: bool = False):
-    """Main pipeline orchestration for SVG path animation."""
+               no_hand: bool = False, review: bool = False):
+    """Main pipeline orchestration for V2 whiteboard video."""
 
-    storyboard = _load_storyboard(storyboard_path)
-    output_dir = get_output_dir(storyboard)
+    # ── Input detection ──
+    is_markdown = input_path.endswith(".md")
+
+    # For markdown input, we parse it first to get storyboard for output dir
+    if is_markdown:
+        parse_mod = _import_step("parse_markdown_script")
+        output_dir = Path(input_path).parent
+        # Quick pre-read to estimate topic
+        topic = "untitled"
+        try:
+            with open(input_path, encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith("# ") and not line.startswith("## "):
+                        topic = line[2:].strip().lower().replace(" ", "-")
+                        break
+        except Exception:
+            pass
+        output_dir = PROJECT_ROOT / "output" / f"{topic}-{time.strftime('%Y%m%d')}"
+        storyboard_path = str(output_dir / "storyboard-skeleton.json")
+    else:
+        storyboard = _load_storyboard(input_path)
+        output_dir = get_output_dir(storyboard)
+        storyboard_path = input_path
+
     os.makedirs(output_dir, exist_ok=True)
 
-    meta = storyboard.get("meta", {})
-    fps = meta.get("fps", 30)
-
     print(f"\n{'#'*60}")
-    print(f"  SVG Whiteboard Video Pipeline")
-    print(f"  Title: {meta.get('title', 'Untitled')}")
+    print(f"  Whiteboard Video Pipeline V2")
+    print(f"  Input: {input_path}")
     print(f"  Mode: {mode}")
     print(f"  Output: {output_dir}")
     print(f"{'#'*60}")
@@ -109,19 +147,16 @@ def make_video(storyboard_path: str, mode: str = "video_first",
             print("ERROR: --video required for audio-only mode")
             sys.exit(1)
 
-        # Step 5: TTS
         if not _step_done(output_dir, "tts"):
             tts_mod = _import_step("tts_pipeline")
             tts_mod.tts_pipeline(storyboard_path, str(output_dir))
 
-        # Step 10: Mix audio
         audio_dir = output_dir / "audio"
         if not _step_done(output_dir, "mix"):
             mixer_mod = _import_step("audio_mixer")
             mixer_mod.mix_all_scenes(storyboard_path, str(audio_dir),
                                      timeline_path=str(output_dir / "timeline.json"))
 
-        # ffmpeg merge audio into video
         merged_path = output_dir / "video.mp4"
         print(f"\n  Merging audio into video...")
         audio_files = sorted(audio_dir.glob("*_mixed.wav"))
@@ -143,18 +178,29 @@ def make_video(storyboard_path: str, mode: str = "video_first",
     # ── Step 0: Validate ──
     if not _step_done(output_dir, "validate"):
         val_mod = _import_step("validate")
-        val_mod.run_checks(storyboard_path, check_tts=(mode == "full"))
+        # For .md input, skip storyboard schema validation (not yet parsed)
+        val_storyboard = storyboard_path if not is_markdown else None
+        val_mod.run_checks(val_storyboard, check_tts=(mode == "full"))
         _write_checkpoint(output_dir, "validate")
 
-    # ── Step 1: Parse storyboard ──
+    # ── Step 1: Parse script ──
     if not skip_prompts and not _step_done(output_dir, "parse"):
-        parse_mod = _import_step("parse_storyboard")
-        parse_mod.parse_storyboard(storyboard_path, str(output_dir / "storyboard.json"),
-                                   draw_mode=draw_mode, pipeline_mode=mode)
+        if is_markdown:
+            # Markdown → storyboard 骨架
+            parse_mod = _import_step("parse_markdown_script")
+            parse_mod.parse_markdown_script(input_path, str(output_dir))
+            storyboard_path = str(output_dir / "storyboard-skeleton.json")
+        else:
+            # JSON 输入：走现有兼容路径
+            parse_mod = _import_step("parse_storyboard")
+            parse_mod.parse_storyboard(input_path, str(output_dir / "storyboard.json"),
+                                       draw_mode=draw_mode, pipeline_mode=mode)
+            storyboard_path = str(output_dir / "storyboard.json")
         _write_checkpoint(output_dir, "parse")
 
     # ── Step 2: Generate prompts ──
     if not skip_prompts and not _step_done(output_dir, "prompts"):
+        storyboard = _load_storyboard(storyboard_path)
         prompts_mod = _import_step("generate_prompts")
         prompts_mod.generate_prompts(storyboard, str(output_dir), use_llm=True)
         _write_checkpoint(output_dir, "prompts")
@@ -165,22 +211,65 @@ def make_video(storyboard_path: str, mode: str = "video_first",
 
     # ── After skip-prompts: continue from here ──
 
+    # Ensure storyboard_path is set correctly after skip
+    if is_markdown and storyboard_path == str(output_dir / "storyboard-skeleton.json"):
+        # Check if skeleton exists, fallback to storyboard.json
+        if not os.path.exists(storyboard_path):
+            alt_path = str(output_dir / "storyboard.json")
+            if os.path.exists(alt_path):
+                storyboard_path = alt_path
+
     # ── Step 3: Validate images ──
     images_dir = output_dir / "images"
     if not _step_done(output_dir, "validate_images"):
         val_img_mod = _import_step("validate_images")
-        issues = val_img_mod.validate_images(storyboard, str(images_dir))
-        # Auto-fix background to pure white
+        sb_for_validation = _load_storyboard(storyboard_path)
+        issues = val_img_mod.validate_images(sb_for_validation, str(images_dir))
         val_img_mod.fix_background_color(str(images_dir))
         _write_checkpoint(output_dir, "validate_images", {"issues": len(issues)})
+
+    # ── Step 4: Detect elements (Vision bbox) ──
+    if not _step_done(output_dir, "detect_elements"):
+        detect_mod = _import_step("detect_elements")
+
+        # For markdown pipeline, output storyboard-complete.json
+        if is_markdown:
+            complete_path = str(output_dir / "storyboard-complete.json")
+            detect_mod.process_all_scenes(
+                storyboard_path,
+                str(images_dir),
+                complete_path,
+                review=review,
+            )
+            storyboard_path = complete_path
+        else:
+            # For JSON pipeline, update in-place
+            detect_mod.process_all_scenes(
+                storyboard_path,
+                str(images_dir),
+                storyboard_path,
+                review=review,
+            )
+
+        _write_checkpoint(output_dir, "detect_elements")
+
+        # --review 模式：暂停等用户确认
+        if review and not _step_done(output_dir, "detect_reviewed"):
+            print(f"\n  >>> Bbox 预览图已生成: {output_dir / 'preview'}/")
+            print(f"  >>> 请检查各场景的 *_bbox.png 预览图")
+            print(f"  >>> 确认满意后，再次运行相同命令以继续（checkpoint 已记录）")
+            _write_checkpoint(output_dir, "detect_reviewed")
+            return
 
     # ── Step 5: TTS (full mode only) ──
     tts_data = None
     if mode == "full":
         if not _step_done(output_dir, "tts"):
             tts_mod = _import_step("tts_pipeline")
+            storyboard = _load_storyboard(storyboard_path)
+            meta = storyboard.get("meta", {})
             tts_data = tts_mod.tts_pipeline(
-                str(output_dir / "storyboard.json"), str(output_dir),
+                storyboard_path, str(output_dir),
                 provider=meta.get("tts", {}).get("provider", "tencent"),
                 voice=meta.get("tts", {}).get("voice", 602005),
                 speed=meta.get("tts", {}).get("speed", 1.1),
@@ -190,10 +279,12 @@ def make_video(storyboard_path: str, mode: str = "video_first",
             cp = _read_checkpoint(output_dir)
             tts_data = cp.get("tts", {}).get("data", {})
 
-    # ── Step 6: Compute timeline (simplified SVG version) ──
+    # ── Step 6: Compute timeline (含后画动画时间) ──
     timeline_path = output_dir / "timeline.json"
     if not _step_done(output_dir, "timeline"):
         timeline_mod = _import_step("compute_timeline")
+        storyboard = _load_storyboard(storyboard_path)
+        fps = storyboard.get("meta", {}).get("fps", 30)
         timeline = timeline_mod.compute_timeline(
             storyboard_path, str(timeline_path),
             tts_data=tts_data, draw_mode="sequential",
@@ -210,21 +301,31 @@ def make_video(storyboard_path: str, mode: str = "video_first",
         sfx_mod.generate_sfx()
         _write_checkpoint(output_dir, "sfx")
 
-    # ── Step 8: Extract drawing paths (中心线路径，替代旧版 SVG 矢量化) ──
+    # ── Step 8: Extract drawing paths (双层路径：骨架 + 轮廓) ──
     if not _step_done(output_dir, "drawing_paths"):
         paths_mod = _import_step("extract_drawing_paths")
-        paths_mod.extract_all_scenes(
-            str(output_dir / "storyboard.json"),
-            str(images_dir),
-            str(output_dir),
-        )
+        # 使用双层路径提取
+        try:
+            paths_mod.extract_all_scenes_dual(
+                storyboard_path,
+                str(images_dir),
+                str(output_dir),
+            )
+        except Exception as e:
+            print(f"  [WARN] 双层路径提取失败 ({e})，回退到仅骨架路径")
+            paths_mod.extract_all_scenes(
+                storyboard_path,
+                str(images_dir),
+                str(output_dir),
+            )
         _write_checkpoint(output_dir, "drawing_paths")
 
-    # ── Step 9: Generate subtitles (无 ffprobe 校正) ──
+    # ── Step 9: Generate subtitles ──
     subs_path = output_dir / "subtitles.srt"
     if not _step_done(output_dir, "subtitles"):
         with open(timeline_path, encoding="utf-8") as f:
             timeline = json.load(f)
+        storyboard = _load_storyboard(storyboard_path)
         subs_mod = _import_step("generate_subtitles")
         subs_mod.generate_srt(timeline, storyboard, str(subs_path))
         _write_checkpoint(output_dir, "subtitles")
@@ -243,11 +344,11 @@ def make_video(storyboard_path: str, mode: str = "video_first",
     # ── Step 11: Deploy resources + Remotion render ──
     video_output = output_dir / ("video.mp4" if mode == "full" else "video_silent.mp4")
     if not _step_done(output_dir, "remotion"):
-        # Deploy resources (drawing paths + PNG images, not SVG/MP4)
+        # Deploy resources
         deploy_mod = _import_step("deploy_resources")
         deploy_mod.deploy_resources(
             storyboard_path, str(output_dir),
-            copy_animations=False,  # SVG mode
+            copy_animations=False,
             copy_audio=(mode == "full"),
             timeline_path=str(timeline_path),
             mode=mode,
@@ -259,7 +360,6 @@ def make_video(storyboard_path: str, mode: str = "video_first",
         print(f"\n  Rendering with Remotion...")
         print(f"  Output: {video_output}")
         npx_cmd = "npx.cmd" if sys.platform == "win32" else "npx"
-        # Use --output with filename only to avoid cross-platform path format issues
         output_name = video_output.name
         result = subprocess.run(
             [npx_cmd, "remotion", "render", "src/index.tsx", "VideoMain",
@@ -276,8 +376,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
                 print(f"  Remotion render complete: {video_output} ({size_mb:.1f} MB)")
                 _write_checkpoint(output_dir, "remotion")
             else:
-                print(f"  [WARN] Render returned success but file not found at expected path")
-                # Search for recently created mp4 files
+                print(f"  [WARN] Render returned success but file not found")
                 import glob as _glob
                 recent = sorted(_glob.glob(str(remotion_dir / "**/*.mp4"), recursive=True),
                               key=os.path.getmtime, reverse=True)[:3]
@@ -288,7 +387,7 @@ def make_video(storyboard_path: str, mode: str = "video_first",
                     print(f"  Copied to: {video_output}")
                     _write_checkpoint(output_dir, "remotion")
                 else:
-                    print(f"  [ERR] No MP4 found anywhere — render may have failed silently")
+                    print(f"  [ERR] No MP4 found")
         else:
             print(f"  [ERR] Remotion render failed:")
             print(result.stderr)
@@ -310,8 +409,9 @@ def make_video(storyboard_path: str, mode: str = "video_first",
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="SVG whiteboard video pipeline orchestrator")
-    parser.add_argument("--storyboard", "-s", required=True, help="Path to storyboard.json")
+    parser = argparse.ArgumentParser(description="V2 whiteboard video pipeline orchestrator")
+    parser.add_argument("--input", "-i", required=True,
+                        help="Input (.md script or .json storyboard)")
     parser.add_argument("--mode", default="video_first", choices=["video_first", "full"],
                         help="Pipeline mode")
     parser.add_argument("--skip-prompts", action="store_true",
@@ -321,18 +421,21 @@ def main():
     parser.add_argument("--video", help="Path to existing video (for audio-only mode)")
     parser.add_argument("--draw-mode", default="sequential",
                         choices=["sequential"],
-                        help="Draw mode (SVG pipeline only supports sequential)")
+                        help="Draw mode")
     parser.add_argument("--no-hand", action="store_true", help="Disable drawing hand")
+    parser.add_argument("--review", action="store_true",
+                        help="Pause after bbox detection to review annotations")
     args = parser.parse_args()
 
     make_video(
-        storyboard_path=args.storyboard,
+        input_path=args.input,
         mode=args.mode,
         skip_prompts=args.skip_prompts,
         audio_only=args.audio_only,
         video_path=args.video,
         draw_mode=args.draw_mode,
         no_hand=args.no_hand,
+        review=args.review,
     )
 
 

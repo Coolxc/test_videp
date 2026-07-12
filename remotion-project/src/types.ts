@@ -135,10 +135,44 @@ export interface StoryboardMeta {
   pipeline: { mode: string; defaultSceneDuration: number | null };
   tts: { provider: string; voice: number; speed: number };
   subtitle: { enabled: boolean; fontSize: number };
+  penStyle?: "marker" | "hand" | "debug";
   transition: { type: string; durationFrames: number };
 }
 
 export interface Storyboard {
   meta: StoryboardMeta;
   scenes: StoryboardScene[];
+}
+
+// ========== V2 Types (Refactor 08) ==========
+
+export interface DrawingPathV2 {
+  d: string;
+  elementId: string;
+  layer: "outline" | "skeleton";
+}
+
+export interface DrawingSceneDataV2 {
+  paths: DrawingPathV2[];
+}
+
+export type AnimationType =
+  | "pulse" | "breathe" | "rotate" | "seesaw" | "bounce"
+  | "shake" | "float" | "emphasis" | "wave";
+
+export type AnimationSpeed = "slow" | "normal" | "fast";
+
+export interface PostAnimation {
+  type: AnimationType;
+  speed: AnimationSpeed;
+}
+
+export interface ElementTimelineV2 extends ElementTimeline {
+  postAnimation?: PostAnimation;
+  animationStartFrame?: number;
+  animationFreezeFrame?: number;
+}
+
+export interface SceneTimelineV2 extends SceneTimeline {
+  elements?: ElementTimelineV2[];
 }

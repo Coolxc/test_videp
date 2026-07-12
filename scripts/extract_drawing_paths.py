@@ -303,7 +303,7 @@ def _assign_paths_to_elements(
     """
     if not elements:
         # 没有元素定义时，所有路径标记为 "content"
-        return [{"d": rp["d"], "elementId": "content"} for rp in raw_paths]
+        return [{"d": rp["d"], "elementId": "content", "layer": "skeleton"} for rp in raw_paths]
 
     # 扩增 element bbox（15% padding）
     padded = []
@@ -357,7 +357,7 @@ def _assign_paths_to_elements(
         sorted_paths = _sort_element_paths(elem_paths, strategy, eb)
 
         for i, rp in sorted_paths:
-            result.append({"d": rp["d"], "elementId": eid})
+            result.append({"d": rp["d"], "elementId": eid, "layer": "skeleton"})
 
     return result
 
@@ -403,6 +403,81 @@ def extract_all_scenes(storyboard_path: str, images_dir: str, output_dir: str) -
     print(f"\n  合并数据: {merged_path} ({len(all_paths)} scenes)")
 
     return all_paths
+
+
+def extract_all_scenes_dual(
+    storyboard_path: str,
+    images_dir: str,
+    output_dir: str,
+) -> dict:
+    """双层路径提取：骨架路径（蒙版揭示）+ 轮廓路径（笔尖跟踪）。
+
+    流程：
+      1. 调用 extract_all_scenes 提取骨架路径（layer: "skeleton"）
+      2. 调用 extract_contour_paths 为每个场景提取轮廓路径（layer: "outline"）
+      3. 合并为一个 drawing-paths.json
+
+    输出格式：
+      {
+        "scene1": {
+          "paths": [
+            {"d": "...", "elementId": "...", "layer": "skeleton"},
+            {"d": "...", "elementId": "...", "layer": "outline"},
+            ...
+          ]
+        },
+        ...
+      }
+    """
+    # Step 1: 提取骨架路径
+    skeleton_data = extract_all_scenes(storyboard_path, images_dir, output_dir)
+
+    # Step 2: 提取轮廓路径
+    from extract_contour_paths import extract_contour_paths
+
+    with open(storyboard_path, "r", encoding="utf-8") as f:
+        storyboard = json.load(f)
+
+    scenes = storyboard.get("scenes", [])
+    drawing_paths_dir = Path(output_dir) / "drawing_paths"
+
+    for scene in scenes:
+        scene_id = scene.get("id", "unknown")
+        image_path = os.path.join(images_dir, get_image_filename(scene_id))
+        elements = scene.get("elements", [])
+
+        if not os.path.exists(image_path):
+            print(f"  [SKIP] 轮廓提取: {image_path} 不存在")
+            continue
+
+        # 获取此场景的骨架路径（用于分组排序）
+        scene_skeleton = skeleton_data.get(scene_id, {})
+        skeleton_paths = scene_skeleton.get("paths", [])
+
+        print(f"\n  轮廓提取: {scene_id}")
+        contour_paths = extract_contour_paths(
+            image_path, elements, skeleton_paths
+        )
+
+        # 合并到场景数据
+        if scene_id in skeleton_data:
+            skeleton_data[scene_id]["paths"].extend(contour_paths)
+        else:
+            skeleton_data[scene_id] = {"paths": contour_paths}
+
+        # 覆写单场景文件
+        scene_out = drawing_paths_dir / f"{scene_id}.json"
+        with open(scene_out, "w", encoding="utf-8") as f:
+            json.dump(skeleton_data[scene_id], f, ensure_ascii=False)
+        print(f"  更新: {scene_out}")
+
+    # 覆写合并文件
+    merged_path = drawing_paths_dir / "drawing-paths.json"
+    with open(merged_path, "w", encoding="utf-8") as f:
+        json.dump(skeleton_data, f, ensure_ascii=False)
+    print(f"\n  合并数据（双层路径）: {merged_path} ({len(skeleton_data)} scenes)")
+
+    return skeleton_data
 
 
 def main():

@@ -121,3 +121,121 @@ def call_deepseek_json(
     if match:
         return json.loads(match.group(0))
     raise ValueError(f"无法从 LLM 响应中提取 JSON:\n{text[:500]}")
+
+
+def call_deepseek_vision(
+    system_prompt: str,
+    user_text: str,
+    image_path: str,
+    temperature: float = 0.3,
+    max_tokens: int = 4000,
+) -> str:
+    """调用 DeepSeek V4 Vision API（DeepSeek V4 Pro/Flash 原生格式）。
+
+    DeepSeek V4 不使用 OpenAI 的 content 数组格式，而是在消息顶层
+    使用独立字段 image_data（纯 Base64）或 image_url（公网 URL）传图：
+      {"role": "user", "content": "描述文字", "image_data": "base64..."}
+
+    详见：https://api-docs.deepseek.com
+
+    Args:
+        system_prompt: 系统提示词
+        user_text: 用户文本
+        image_path: 图片路径（PNG/JPG）
+        temperature: 温度参数
+        max_tokens: 最大 token 数
+
+    Returns:
+        API 响应文本
+    """
+    import base64
+
+    # 读取原始图片文件 → base64
+    with open(image_path, "rb") as f:
+        raw_bytes = f.read()
+
+    # 检测文件大小，超过 4MB 的缩放
+    if len(raw_bytes) > 4 * 1024 * 1024:
+        try:
+            from PIL import Image as PILImage
+            from io import BytesIO
+            img = PILImage.open(image_path).convert("RGB")
+            w, h = img.size
+            scale = min(1024 / w, 1024 / h)
+            if scale < 1:
+                new_w, new_h = int(w * scale), int(h * scale)
+                img = img.resize((new_w, new_h), PILImage.LANCZOS)
+                buf = BytesIO()
+                img.save(buf, format="PNG")
+                raw_bytes = buf.getvalue()
+                print(f"  [Vision] 图片缩放 {w}x{h} → {new_w}x{new_h} ({len(raw_bytes)/1024:.0f}KB)")
+        except ImportError:
+            pass
+
+    image_data = base64.b64encode(raw_bytes).decode("utf-8")
+
+    headers = {
+        "Authorization": f"Bearer {_get_api_key()}",
+        "Content-Type": "application/json",
+    }
+
+    # DeepSeek V4 专用格式：image_data 作为消息顶层独立字段，纯 Base64（无 data: 前缀）
+    payload = {
+        "model": DEEPSEEK_MODEL,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": user_text,
+                "image_data": image_data,
+            },
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+
+    for attempt in range(3):
+        try:
+            resp = requests.post(
+                DEEPSEEK_API_URL, json=payload, headers=headers, timeout=120
+            )
+            resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"]
+        except requests.exceptions.RequestException as e:
+            detail = ""
+            try:
+                detail = f" | body: {resp.text[:500]}"
+            except Exception:
+                pass
+            if attempt < 2:
+                wait = 2 ** attempt
+                print(f"  [Vision LLM] 请求失败, {wait}s 后重试: {e}{detail}")
+                time.sleep(wait)
+            else:
+                raise RuntimeError(f"DeepSeek Vision API call failed: {e}{detail}")
+
+    raise RuntimeError("DeepSeek Vision API call failed after 3 retries")
+
+
+def call_deepseek_vision_json(
+    system_prompt: str,
+    user_text: str,
+    image_path: str,
+    **kwargs,
+) -> dict:
+    """调用 DeepSeek Vision API 并解析 JSON 响应。"""
+    text = call_deepseek_vision(system_prompt, user_text, image_path, **kwargs)
+    # 尝试直接解析
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+    # 尝试提取 ```json ... ``` 块
+    match = re.search(r"```json\s*(.*?)\s*```", text, re.DOTALL)
+    if match:
+        return json.loads(match.group(1))
+    # 尝试提取第一个 { ... } 块
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        return json.loads(match.group(0))
+    raise ValueError(f"无法从 LLM Vision 响应中提取 JSON:\n{text[:500]}")

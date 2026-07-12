@@ -212,6 +212,21 @@ def generate_scene_prompt(
         ps_prompt = ps.get("imagePrompt", "") or ps.get("description", "")
         prev_summaries.append(f"  场景 {ps_id}: {ps_prompt[:100]}")
 
+    # 布局约束（当有多个元素时）
+    layout_constraints = ""
+    if len(elements) > 1:
+        layout_lines = []
+        for e in elements:
+            desc = e.get("description", e.get("id", "?"))
+            layout_lines.append(f"  - {desc}")
+        layout_constraints = (
+            "\n【画面布局要求】\n"
+            "以下元素必须在画面中清晰分离，元素之间保持明显间距（至少 50px）：\n"
+            + "\n".join(layout_lines) + "\n"
+            "每个元素应该占据独立的画面区域，不可重叠。"
+            "元素间留足空白，确保后续可以单独提取每个元素的轮廓。\n"
+        )
+
     user_prompt = (
         f"【风格指南】\n{json.dumps(style_guide, ensure_ascii=False, indent=2)}\n\n"
         f"【当前场景】\n"
@@ -219,7 +234,8 @@ def generate_scene_prompt(
         f"场景序号: 第 {scene_index+1}/{total_scenes} 场景\n"
         f"画面描述: {image_prompt}\n"
         f"旁白文案: {voice_text}\n"
-        f"元素列表: {[e.get('description', e.get('id', '?')) for e in elements]}\n\n"
+        f"元素列表: {[e.get('description', e.get('id', '?')) for e in elements]}\n"
+        f"{layout_constraints}"
         f"【前序场景摘要】（保持一致性参考）\n"
         + "\n".join(prev_summaries) + "\n\n"
         f"请生成精致插画风的详细图片 prompt。\n"

@@ -1,14 +1,11 @@
 /**
- * WhiteboardVideo.tsx - 白板视频主合成组件（PNG Mask Reveal 模式）
+ * WhiteboardVideo.tsx - 白板视频主合成组件（V2：轮廓驱动 + 后画动画 + PenWipe）
  *
- * 用 MaskRevealAnimation 替代了旧版的 SVGDrawAnimation。
- * 核心变化：不再用 SVG 路径重绘图片，而是用中心线蒙版揭示原始 PNG。
- *
- * 主要变化（v07 → v08）：
- *  - SVGDrawAnimation → MaskRevealAnimation（核心变化）
- *  - 数据从 svg-data.json → drawing-paths.json
- *  - 每个场景直接渲染 PNG 原图（零质量损失）
- *  - 保留 HandWipeTransition 手擦除转场、字幕、音效
+ * V2 核心变化：
+ *  - MaskRevealAnimation V2：轮廓驱动笔尖 + 空间邻近蒙版
+ *  - PostDrawAnimation：元素画完后 9 种 Transform 动画
+ *  - PenWipeTransition：马克笔转场（替代旧版 HandWipeTransition）
+ *  - 数据格式：DrawingPathV2（含 layer 字段）
  */
 
 import React from "react";
@@ -29,13 +26,16 @@ import type {
   ElementTimeline,
   StoryboardScene,
   DrawingSceneData,
+  ElementTimelineV2,
+  DrawingPathV2,
 } from "./types";
 import MaskRevealAnimation from "./MaskRevealAnimation";
-import HandWipeTransition from "./HandWipeTransition";
+import PostDrawAnimation from "./PostDrawAnimation";
+import PenWipeTransition from "./PenWipeTransition";
 
 // ========== Design Tokens ==========
 const C = {
-  bg: "#FFFFFF", // 纯白纸
+  bg: "#FFFFFF",
   accent: "#C05050",
   text: "#2D3748",
   subtitleBg: "rgba(45, 55, 72, 0.85)",
@@ -99,7 +99,7 @@ const Subtitle: React.FC<SubtitleProps> = ({ segments, fontSize = 36 }) => {
   );
 };
 
-// ========== Drawing Sound Effects (简化版，单层音效) ==========
+// ========== Drawing Sound Effects ==========
 interface DrawingSFXProps {
   elements: ElementTimeline[];
 }
@@ -133,7 +133,7 @@ const DrawingSFX: React.FC<DrawingSFXProps> = ({ elements }) => (
   </>
 );
 
-// ========== Handwritten Text (逐字手写动画) ==========
+// ========== Handwritten Text (unchanged) ==========
 interface WritingHandProps {
   chars: string[];
   startFrame: number;
@@ -388,6 +388,18 @@ const SceneBackground: React.FC<SceneBackgroundProps> = ({ children }) => (
   <AbsoluteFill style={{ backgroundColor: C.bg }}>{children}</AbsoluteFill>
 );
 
+// ========== Build element bbox map from storyboard ==========
+
+function buildBboxMap(scene: StoryboardScene): Record<string, { x: number; y: number; w: number; h: number }> {
+  const map: Record<string, { x: number; y: number; w: number; h: number }> = {};
+  for (const elem of scene.elements || []) {
+    if (elem.bbox) {
+      map[elem.id] = elem.bbox;
+    }
+  }
+  return map;
+}
+
 // ========== Main Composition ==========
 interface WhiteboardVideoProps {
   timeline: Timeline;
@@ -405,6 +417,7 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({
   const fps = timeline.fps;
   const subtitleFontSize = storyboard.meta.subtitle?.fontSize || 36;
   const transitionFrames = timeline.transitionDurationFrames || 25;
+  const penStyle = storyboard.meta.penStyle || "marker";
 
   const bgmVolume = (frame: number) => {
     const fadeIn = interpolate(frame, [0, 30], [0, 0.03], {
@@ -437,6 +450,9 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({
         const scenePaths = drawingPathsData[tScene.id];
         const hasDrawingPaths = scenePaths && scenePaths.paths && scenePaths.paths.length > 0;
 
+        // 元素 bbox 映射（后画动画需要）
+        const elementBboxMap = buildBboxMap(scene);
+
         // Build subtitle segments from element narrations
         const subSegs = tScene.elements
           ? tScene.elements
@@ -463,30 +479,42 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({
             durationInFrames={tScene.durationFrames}
           >
             <SceneBackground>
-              {/* PNG 蒙版揭示动画（替代旧版 SVG 路径重绘） */}
+              {/* PNG 蒙版揭示动画（V2：轮廓驱动 + 空间邻近蒙版） */}
               {hasDrawingPaths ? (
                 <MaskRevealAnimation
                   imageSrc={staticFile(`images/${tScene.id}.png`)}
-                  drawingPaths={scenePaths.paths}
+                  drawingPaths={scenePaths.paths as DrawingPathV2[]}
                   drawAtFrames={tScene.elements?.map((e) => e.drawAtFrame) || []}
                   drawDurations={
                     tScene.elements?.map((e) => e.drawDurationFrames) || []
                   }
                   elementIds={tScene.elements?.map((e) => e.id) || []}
                   brushRadius={50}
+                  penStyle={penStyle}
                   showHand={!storyboard.meta?.noHand}
                 />
               ) : (
-                /* Fallback: show empty white background */
                 null
               )}
+
+              {/* 后画动画（元素画完后独立触发） */}
+              {tScene.elements?.filter((e: ElementTimelineV2) => e.postAnimation).map((elem: ElementTimelineV2) => (
+                <PostDrawAnimation
+                  key={`anim-${elem.id}`}
+                  imageSrc={staticFile(`images/${tScene.id}.png`)}
+                  bbox={elementBboxMap[elem.id] || { x: 0, y: 0, w: 1920, h: 1080 }}
+                  animation={elem.postAnimation!}
+                  triggerFrame={elem.animationStartFrame ?? 0}
+                  freezeFrame={elem.animationFreezeFrame ?? tScene.durationFrames}
+                />
+              ))}
 
               {/* Subtitles */}
               {filteredSubs.length > 0 && (
                 <Subtitle segments={filteredSubs} fontSize={subtitleFontSize} />
               )}
 
-              {/* Drawing sound effects (单层) */}
+              {/* Drawing sound effects */}
               {tScene.elements && tScene.elements.length > 0 && (
                 <DrawingSFX elements={tScene.elements} />
               )}
@@ -507,9 +535,9 @@ export const WhiteboardVideo: React.FC<WhiteboardVideoProps> = ({
                 />
               )}
 
-              {/* Hand wipe transition (手擦除转场) */}
+              {/* Pen wipe transition (马克笔转场，替代旧版 HandWipeTransition) */}
               {!isLast && (
-                <HandWipeTransition
+                <PenWipeTransition
                   startFrame={tScene.durationFrames - transitionFrames}
                   durationFrames={transitionFrames}
                 />

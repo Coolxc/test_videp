@@ -1,0 +1,71 @@
+{
+  "fps": 30,
+  "totalFrames": 1181,
+  "transitionDurationFrames": 25,
+  "drawMode": "sequential",
+  "scenes": [
+    {
+      "id": "scene1",
+      "startFrame": 0,
+      "durationFrames": 422,
+      "elements": [
+        {
+          "id": "hourglass",
+          "drawAtFrame": 0,
+          "drawDurationFrames": 180,
+          "narration": "还在单纯靠出卖“劳动时间”来换取工资吗？"
+        },
+        {
+          "id": "worker",
+          "drawAtFrame": 190,
+          "drawDurationFrames": 162,
+          "narration": "在AI时代，这已经不再是稳固的资产。"
+        }
+      ]
+    },
+    {
+      "id": "scene2",
+      "startFrame": 397,
+      "durationFrames": 432,
+      "elements": [
+        {
+          "id": "lever_base",
+          "drawAtFrame": 25,
+          "drawDurationFrames": 171,
+          "narration": "真正的资产，是能把钱放进你口袋的系统。"
+        },
+        {
+          "id": "lever_arm",
+          "drawAtFrame": 206,
+          "drawDurationFrames": 90,
+          "narration": "学会把AI当成杠杆，"
+        },
+        {
+          "id": "wealth_assets",
+          "drawAtFrame": 306,
+          "drawDurationFrames": 81,
+          "narration": "去放大你的生产力。"
+        }
+      ]
+    },
+    {
+      "id": "scene3",
+      "startFrame": 804,
+      "durationFrames": 377,
+      "elements": [
+        {
+          "id": "brain_outline",
+          "drawAtFrame": 25,
+          "drawDurationFrames": 117,
+          "narration": "投资头脑这个最强大的资产。"
+        },
+        {
+          "id": "judgment_text",
+          "drawAtFrame": 152,
+          "drawDurationFrames": 180,
+          "narration": "从执行者，转变为拥有高阶判断力的决策者。"
+        }
+      ]
+    }
+  ]
+}

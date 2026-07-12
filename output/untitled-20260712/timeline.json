@@ -1,0 +1,128 @@
+{
+  "fps": 30,
+  "totalFrames": 1626,
+  "transitionDurationFrames": 25,
+  "drawMode": "sequential",
+  "scenes": [
+    {
+      "id": "scene1",
+      "startFrame": 0,
+      "durationFrames": 712,
+      "elements": [
+        {
+          "id": "hourglass",
+          "drawAtFrame": 0,
+          "drawDurationFrames": 153,
+          "narration": "还在靠出卖“劳动时间”换取工资吗？",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        },
+        {
+          "id": "sand_flow",
+          "drawAtFrame": 163,
+          "drawDurationFrames": 153,
+          "narration": "在AI时代，这已不再是稳固的资产。",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        },
+        {
+          "id": "stick_figure_worker",
+          "drawAtFrame": 326,
+          "drawDurationFrames": 153,
+          "narration": "在AI时代，这已不再是稳固的资产。",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        },
+        {
+          "id": "text_wage_time",
+          "drawAtFrame": 489,
+          "drawDurationFrames": 153,
+          "narration": "在AI时代，这已不再是稳固的资产。",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        }
+      ]
+    },
+    {
+      "id": "scene2",
+      "startFrame": 687,
+      "durationFrames": 523,
+      "elements": [
+        {
+          "id": "fulcrum",
+          "drawAtFrame": 25,
+          "drawDurationFrames": 162,
+          "narration": "真正的资产是能产生被动现金流的系统。",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        },
+        {
+          "id": "lever",
+          "drawAtFrame": 197,
+          "drawDurationFrames": 90,
+          "narration": "学会把AI当成杠杆，",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        },
+        {
+          "id": "text_ai",
+          "drawAtFrame": 297,
+          "drawDurationFrames": 90,
+          "narration": "学会把AI当成杠杆，",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        },
+        {
+          "id": "wealth_icons",
+          "drawAtFrame": 397,
+          "drawDurationFrames": 81,
+          "narration": "去放大你的生产力。",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        }
+      ]
+    },
+    {
+      "id": "scene3",
+      "startFrame": 1185,
+      "durationFrames": 441,
+      "elements": [
+        {
+          "id": "brain_outline",
+          "drawAtFrame": 25,
+          "drawDurationFrames": 108,
+          "narration": "投资头脑这个唯一的资产。",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        },
+        {
+          "id": "brain_glow",
+          "drawAtFrame": 143,
+          "drawDurationFrames": 90,
+          "narration": "从单纯的“执行者”，",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        },
+        {
+          "id": "text_judgment",
+          "drawAtFrame": 243,
+          "drawDurationFrames": 153,
+          "narration": "转变为拥有高阶判断力的“决策者”。",
+          "postAnimation": null,
+          "animationStartFrame": null,
+          "animationFreezeFrame": null
+        }
+      ]
+    }
+  ]
+}

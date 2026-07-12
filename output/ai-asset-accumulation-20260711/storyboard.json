@@ -1,0 +1,150 @@
+{
+  "meta": {
+    "title": "AI时代资产积累指南",
+    "topic": "ai-asset-accumulation",
+    "style": "ipad_sketch",
+    "pipeline": {
+      "mode": "full"
+    },
+    "tts": {
+      "provider": "tencent",
+      "voice": "602005",
+      "speed": 1.1
+    },
+    "subtitle": {
+      "enabled": true,
+      "fontSize": 36
+    },
+    "fps": 30,
+    "width": 1920,
+    "height": 1080,
+    "imageStyle": "whiteboard",
+    "styleGuide": null,
+    "imageAspectRatio": "16:9",
+    "drawMode": "sequential",
+    "camera": {
+      "enabled": true,
+      "maxZoom": 2.5,
+      "transitionMs": 800
+    },
+    "transition": {
+      "type": "fade",
+      "durationFrames": 15
+    },
+    "animationEngine": "whiteboard"
+  },
+  "scenes": [
+    {
+      "id": "scene1",
+      "imagePrompt": "A minimalist sketch of a stick figure running inside a giant hourglass, sand falling rapidly. Blue marker style on white background.",
+      "voiceText": "还在单纯靠出卖“劳动时间”来换取工资吗？在AI时代，这已经不再是稳固的资产。",
+      "elements": [
+        {
+          "id": "hourglass",
+          "description": "一个巨大的沙漏，象征流逝的时间",
+          "bbox": {
+            "x": 460,
+            "y": 80,
+            "w": 400,
+            "h": 920
+          },
+          "narration": "还在单纯靠出卖“劳动时间”来换取工资吗？",
+          "drawStrategy": "top_down"
+        },
+        {
+          "id": "worker",
+          "description": "在沙漏底部疲于奔命的火柴人",
+          "bbox": {
+            "x": 1100,
+            "y": 650,
+            "w": 350,
+            "h": 350
+          },
+          "narration": "在AI时代，这已经不再是稳固的资产。",
+          "drawStrategy": "spatial_walk"
+        }
+      ],
+      "duration": null,
+      "imageName": "scene1.png"
+    },
+    {
+      "id": "scene2",
+      "imagePrompt": "A long lever with a fulcrum labeled 'AI'. On one end, a stick figure stands. On the other end, a large pile of gold coins and a patent document icon are being lifted.",
+      "voiceText": "真正的资产，是能把钱放进你口袋的系统。学会把AI当成杠杆，去放大你的生产力。",
+      "elements": [
+        {
+          "id": "lever_base",
+          "description": "标注有AI字样的三角形支点",
+          "bbox": {
+            "x": 860,
+            "y": 750,
+            "w": 200,
+            "h": 250
+          },
+          "narration": "真正的资产，是能把钱放进你口袋的系统。",
+          "drawStrategy": "outline_first"
+        },
+        {
+          "id": "lever_arm",
+          "description": "横跨支点的长杠杆",
+          "bbox": {
+            "x": 150,
+            "y": 520,
+            "w": 1620,
+            "h": 80
+          },
+          "narration": "学会把AI当成杠杆，",
+          "drawStrategy": "left_right"
+        },
+        {
+          "id": "wealth_assets",
+          "description": "被杠杆撬起的一堆金币和专利证书",
+          "bbox": {
+            "x": 1400,
+            "y": 200,
+            "w": 400,
+            "h": 350
+          },
+          "narration": "去放大你的生产力。",
+          "drawStrategy": "bottom_up"
+        }
+      ],
+      "duration": null,
+      "imageName": "scene2.png"
+    },
+    {
+      "id": "scene3",
+      "imagePrompt": "A glowing outline of a human brain in the center. Inside the brain, the word '判断力' (Judgment) is written in bold, stylized Chinese characters.",
+      "voiceText": "投资头脑这个最强大的资产。从执行者，转变为拥有高阶判断力的决策者。",
+      "elements": [
+        {
+          "id": "brain_outline",
+          "description": "简洁的大脑轮廓线，带有放射状光芒",
+          "bbox": {
+            "x": 660,
+            "y": 200,
+            "w": 600,
+            "h": 600
+          },
+          "narration": "投资头脑这个最强大的资产。",
+          "drawStrategy": "center_out"
+        },
+        {
+          "id": "judgment_text",
+          "description": "大脑中心的“判断力”手写文字",
+          "bbox": {
+            "x": 810,
+            "y": 440,
+            "w": 300,
+            "h": 100
+          },
+          "narration": "从执行者，转变为拥有高阶判断力的决策者。",
+          "drawStrategy": "spatial_walk"
+        }
+      ],
+      "textOverlay": "如何积累AI时代的“资产”？",
+      "duration": null,
+      "imageName": "scene3.png"
+    }
+  ]
+}

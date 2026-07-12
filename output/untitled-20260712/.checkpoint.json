@@ -1,0 +1,61 @@
+{
+  "validate": {
+    "done": true,
+    "timestamp": 1783859627.1154017,
+    "data": {}
+  },
+  "parse": {
+    "done": true,
+    "timestamp": 1783859685.0397458,
+    "data": {}
+  },
+  "prompts": {
+    "done": true,
+    "timestamp": 1783859754.3959475,
+    "data": {}
+  },
+  "validate_images": {
+    "done": true,
+    "timestamp": 1783860241.1689432,
+    "data": {
+      "issues": 4
+    }
+  },
+  "detect_elements": {
+    "done": true,
+    "timestamp": 1783862013.231798,
+    "data": {}
+  },
+  "timeline": {
+    "done": true,
+    "timestamp": 1783862013.3010597,
+    "data": {
+      "totalFrames": 1626
+    }
+  },
+  "sfx": {
+    "done": true,
+    "timestamp": 1783862014.3629286,
+    "data": {}
+  },
+  "drawing_paths": {
+    "done": true,
+    "timestamp": 1783862127.788501,
+    "data": {}
+  },
+  "subtitles": {
+    "done": true,
+    "timestamp": 1783862127.847525,
+    "data": {}
+  },
+  "remotion": {
+    "done": true,
+    "timestamp": 1783862313.1010354,
+    "data": {}
+  },
+  "publish": {
+    "done": true,
+    "timestamp": 1783862313.1516833,
+    "data": {}
+  }
+}

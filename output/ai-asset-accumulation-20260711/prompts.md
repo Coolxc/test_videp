@@ -1,0 +1,73 @@
+# 图片生成指南: AI时代资产积累指南
+
+**画风**: iPad 手绘简笔画风
+**场景数**: 3
+**配色方案**: #000000, #FFFFFF
+
+---
+
+## 文件名清单
+
+| 场景 | 文件名 | 保存到 |
+|------|--------|--------|
+| scene1 | scene1.png | output/ai-asset-accumulation/images/ |
+| scene2 | scene2.png | output/ai-asset-accumulation/images/ |
+| scene3 | scene3.png | output/ai-asset-accumulation/images/ |
+
+**注意：文件名必须精确匹配（小写，.png 后缀）**
+
+---
+
+## 场景 1: scene1
+
+### ============================================
+###   请保存为: scene1.png
+### ============================================
+
+**Prompt (复制到 Seedream):**
+
+纯黑白手绘速写，iPad Procreate风格，16:9横版。画面中央是一个巨大的沙漏，用有压感粗细变化的黑色线条勾勒：上部和下部为倒梯形，中间细颈连接，线条起笔细1px，行笔粗4px，收笔细1px，关键轮廓线略粗（3-5px），辅助细节线略细（1-2px），轻微手绘抖动。沙漏内部，细颈处有少量向下流动的沙子，用5-8笔松散的短线表示，线条末端渐细。沙漏底部内，一个简化卡通小人（圆脸、圆点眼、弧线嘴，有体态特征）正在奔跑，四肢用有粗细变化的线条表现，头部略大于身体，身体用10-12笔完成，姿态向前倾，手臂前后摆动，腿部迈开。小人周围有少量细小的沙粒下落（点状短线）。背景纯白#FFFFFF，无任何文字。所有线条与背景形成强烈黑白对比，无灰色渐变、半透明或飞白效果。
+
+**负面提示词:**
+文字、数字、写实人像、火柴人（指纯粹线条无头无表情）、复杂背景、颜色（任何非黑白）、阴影网格、密集交叉线、灰色渐变、半透明、毛笔飞白、照片质感、3D渲染、油画、水彩、卡通上色。
+
+**构图说明:**
+沙漏居中，约占画面高度的80%，左右各留10%空白。沙漏底部小人位于沙漏下部的中间偏左位置，约占沙漏底部高度的30%，小人脚部靠近沙漏底部边界。沙粒从沙漏细颈中心下落，呈垂直流动趋势，集中在沙漏上半部和底部上方。整体保持元素独立岛状，沙漏与小人之间留有空隙，避免线条粘连。
+
+---
+
+## 场景 2: scene2
+
+### ============================================
+###   请保存为: scene2.png
+### ============================================
+
+**Prompt (复制到 Seedream):**
+
+An iPad professional hand-drawn sketch in pure black ink lines on white background (#FFFFFF). A long horizontal lever spans the composition, with a triangular fulcrum at the center. The fulcrum contains an abstract symbol of intelligence (a small circle with neural-like lines inside, no letters). On the left end of the lever, a simplified cartoon character stands: round head, dot eyes, curved mouth, simple body with limbs showing slight thickness variation (pen pressure 1-4px). The character is drawn with confident, organic strokes (10-18 lines) and has a natural stance. On the right end, a pile of gold coins (circles with inner lines for shine, no text) and a rolled patent document (cylinder with a seal flap at top, no text) are being lifted upward, slightly tilted to show motion. The lever itself has a thicker contour line (3-5px) and thinner inner details (1-2px), with gentle hand-drawn wobble. Each element is isolated with generous white space (at least 15% of width between them). The overall composition is 16:9 horizontal, minimalist, high contrast, with no shading or gray tones. The linework uses varied pressure: starting thin (1px), thickening to 4px, ending thin (1px). Key outlines are slightly thicker (3-5px), supporting details thinner (1-2px). No dense hatching; only slight line weight emphasis on key contours for depth. Style: iPad Procreate sketch using Apple Pencil, loose and expressive, with a professional, educational vibe.
+
+**负面提示词:**
+text, words, letters, numbers, labels, realistic style, photorealistic, complex backgrounds, gray gradients, semi-transparency, dry brush effects, fractal patterns, overlapping elements, cross-hatching, mechanical perfect lines, flat 2D icons, stick figures, detailed faces, shaded surfaces, color other than black and white, blurry lines, messy strokes, uncertain marks
+
+**构图说明:**
+Place the lever horizontally across the center of the 16:9 canvas, spanning about 80% of width. Position the triangular fulcrum at the horizontal center, slightly below vertical center (the lever tilts: left end lower, right end higher). The stick figure stands on the left end of the lever, occupying about 20% of canvas width, slightly smaller scale to indicate distance? Actually keep proportional: figure height ~15% of canvas height. On the right end, the gold coin pile (4-5 coins stacked) and patent document (cylindrical shape) are clustered together, raised about 30% above the lever's rest level to show lifting action. Ensure at least 15% white space between the left figure and fulcrum, and between fulcrum and right cluster. The background is pure white with no additional elements. The lever line should be thick and continuous, with a slight upward curve on the right side to suggest force.
+
+---
+
+## 场景 3: scene3
+
+### ============================================
+###   请保存为: scene3.png
+### ============================================
+
+**Prompt (复制到 Seedream):**
+
+A clean, iPad Procreate hand-drawn sketch of a human brain in the center, stylized with simple minimal lines. The brain outline is drawn with confident, slightly trembling strokes, using pure black ink (#000000) on a white background (#FFFFFF). Key contours are thicker (3-5px) and auxiliary details thinner (1-2px), creating natural line weight variation. Inside the brain, a small balanced scale (天平) replaces the Chinese characters '判断力', drawn with 10-15 strokes to symbolize judgment. Radiating from the brain are 10-15 short, loose straight lines with varied thickness and organic wobble, representing glowing beams. No gradients, no transparency, no text. The entire composition is monochrome with high contrast for vectorization compatibility. The brain is centered and occupies about 60% of the canvas width. All lines are crisp and solid, avoiding any cross-hatching or blur. The mood is focused and professional, with a hand-drawn intimacy.
+
+**负面提示词:**
+No text or Chinese characters anywhere. No realistic shading, gray gradients, or halftones. No photographic or 3D rendering. No dense hatching or cross-hatching. No colors other than black and white. No blurred lines or soft edges. No mechanical or perfectly straight lines. No extra elements outside the brain and its radiating beams. No background patterns or textures.
+
+**构图说明:**
+Canvas is 16:9 landscape. The brain is centered both horizontally and vertically, leaving ample white space on all sides. The radiating lines extend outward evenly from the brain's contour, each spaced apart and not touching. The internal scale should be placed in the upper-middle region of the brain, drawn with thin, delicate strokes to contrast with the thicker outer outline. All elements should remain as independent visual 'islands' with at least 15% canvas width spacing. No overlap between the brain outline and the scale icon. Keep the overall feel minimal and airy.
+
+---
