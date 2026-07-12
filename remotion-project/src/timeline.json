@@ -1,57 +1,69 @@
 {
   "fps": 30,
-  "totalFrames": 819,
+  "totalFrames": 1181,
   "transitionDurationFrames": 25,
   "drawMode": "sequential",
   "scenes": [
     {
       "id": "scene1",
       "startFrame": 0,
-      "durationFrames": 306,
+      "durationFrames": 422,
       "elements": [
         {
-          "id": "person",
+          "id": "hourglass",
           "drawAtFrame": 0,
-          "drawDurationFrames": 108,
-          "narration": "还在单纯靠出卖劳动时间，"
+          "drawDurationFrames": 180,
+          "narration": "还在单纯靠出卖“劳动时间”来换取工资吗？"
         },
         {
-          "id": "clock",
-          "drawAtFrame": 118,
-          "drawDurationFrames": 108,
-          "narration": "来换取那点微薄的工资吗？"
-        },
-        {
-          "id": "money",
-          "drawAtFrame": 236,
-          "drawDurationFrames": 30,
-          "narration": ""
+          "id": "worker",
+          "drawAtFrame": 190,
+          "drawDurationFrames": 162,
+          "narration": "在AI时代，这已经不再是稳固的资产。"
         }
       ]
     },
     {
       "id": "scene2",
-      "startFrame": 281,
-      "durationFrames": 268,
+      "startFrame": 397,
+      "durationFrames": 432,
       "elements": [
         {
-          "id": "brain",
-          "drawAtFrame": 0,
-          "drawDurationFrames": 198,
-          "narration": "停止做执行者，开始做拥有高阶判断力的决策者。"
+          "id": "lever_base",
+          "drawAtFrame": 25,
+          "drawDurationFrames": 171,
+          "narration": "真正的资产，是能把钱放进你口袋的系统。"
+        },
+        {
+          "id": "lever_arm",
+          "drawAtFrame": 206,
+          "drawDurationFrames": 90,
+          "narration": "学会把AI当成杠杆，"
+        },
+        {
+          "id": "wealth_assets",
+          "drawAtFrame": 306,
+          "drawDurationFrames": 81,
+          "narration": "去放大你的生产力。"
         }
       ]
     },
     {
       "id": "scene3",
-      "startFrame": 524,
-      "durationFrames": 295,
+      "startFrame": 804,
+      "durationFrames": 377,
       "elements": [
         {
-          "id": "pyramid",
-          "drawAtFrame": 0,
-          "drawDurationFrames": 225,
-          "narration": "从执行到管理再到决策，这是每一个职场人的进阶之路。"
+          "id": "brain_outline",
+          "drawAtFrame": 25,
+          "drawDurationFrames": 117,
+          "narration": "投资头脑这个最强大的资产。"
+        },
+        {
+          "id": "judgment_text",
+          "drawAtFrame": 152,
+          "drawDurationFrames": 180,
+          "narration": "从执行者，转变为拥有高阶判断力的决策者。"
         }
       ]
     }

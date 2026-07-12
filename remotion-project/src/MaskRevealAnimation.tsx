@@ -181,12 +181,12 @@ const DrawingHand: React.FC<DrawingHandProps> = ({
       src={staticFile("assets/writing-hand-small.png")}
       style={{
         position: "absolute",
-        left: point.x - 60,          // 笔尖 X 偏移（原图比例 17%）
-        top: point.y - 22,           // 笔尖 Y 偏移（原图比例 4.6%）
-        width: 350,                   // 手宽度占画面 18%（YouTube 标准）
-        height: 481,                  // 保持原始宽高比（872:1200）
+        left: point.x - 48,          // 笔尖 X 偏移（原图 84/872 = 9.6%）
+        top: point.y - 23,           // 笔尖 Y 偏移（原图 40/1200 = 3.3%）
+        width: 500,                   // 手宽度占画面 26%（500/1920）
+        height: 688,                  // 保持原始宽高比（872:1200）
         transform: `rotate(${smoothedAngle * 0.3}deg)`,  // 柔和旋转（30% 角度）
-        transformOrigin: "60px 22px", // 旋转中心 = 笔尖位置
+        transformOrigin: "48px 23px", // 旋转中心 = 笔尖位置
         zIndex: 100,
         pointerEvents: "none",
       }}

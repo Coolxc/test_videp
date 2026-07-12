@@ -236,6 +236,61 @@ def _walk_chain(mask: np.ndarray) -> list[tuple[int, int]]:
     return ordered
 
 
+def _sort_element_paths(elem_paths: list, strategy: str, elem_bbox: dict) -> list:
+    """根据 drawStrategy 对元素内路径排序。"""
+    if strategy == "top_down":
+        return sorted(elem_paths, key=lambda x: x[1]["bbox"]["y"])
+
+    elif strategy == "bottom_up":
+        return sorted(elem_paths, key=lambda x: x[1]["bbox"]["y"], reverse=True)
+
+    elif strategy == "left_right":
+        return sorted(elem_paths, key=lambda x: x[1]["bbox"]["x"])
+
+    elif strategy == "outline_first":
+        by_length = sorted(elem_paths, key=lambda x: x[1]["length"], reverse=True)
+        split = max(1, len(by_length) // 5)
+        outline = _greedy_spatial_walk(by_length[:split], elem_bbox)
+        detail = _greedy_spatial_walk(by_length[split:], elem_bbox)
+        return outline + detail
+
+    elif strategy == "center_out":
+        cx = elem_bbox["x"] + elem_bbox["w"] / 2
+        cy = elem_bbox["y"] + elem_bbox["h"] / 2
+        return sorted(elem_paths,
+                      key=lambda x: _path_center_dist(x[1], cx, cy))
+
+    else:  # spatial_walk (default)
+        return _greedy_spatial_walk(elem_paths, elem_bbox)
+
+
+def _greedy_spatial_walk(paths: list, elem_bbox: dict) -> list:
+    """空间邻近遍历：从元素左上角开始，每次画最近的未画路径。"""
+    if len(paths) <= 1:
+        return paths
+    remaining = list(range(len(paths)))
+    start_x, start_y = elem_bbox["x"], elem_bbox["y"]
+    first = min(remaining,
+                key=lambda j: _path_center_dist(paths[j][1], start_x, start_y))
+    ordered = [first]
+    remaining.remove(first)
+    while remaining:
+        last = paths[ordered[-1]][1]
+        lx = last["bbox"]["x"] + last["bbox"]["w"] / 2
+        ly = last["bbox"]["y"] + last["bbox"]["h"] / 2
+        nearest = min(remaining,
+                      key=lambda j: _path_center_dist(paths[j][1], lx, ly))
+        ordered.append(nearest)
+        remaining.remove(nearest)
+    return [paths[j] for j in ordered]
+
+
+def _path_center_dist(rp, x, y):
+    cx = rp["bbox"]["x"] + rp["bbox"]["w"] / 2
+    cy = rp["bbox"]["y"] + rp["bbox"]["h"] / 2
+    return (cx - x) ** 2 + (cy - y) ** 2
+
+
 def _assign_paths_to_elements(
     raw_paths: list[dict],
     elements: list[dict],
@@ -289,16 +344,19 @@ def _assign_paths_to_elements(
 
         path_elem_map[i] = matched
 
-    # 第二步：按 elements 列表顺序分组输出，元素内按路径长度降序排列
-    # 长线条（外轮廓/框架）先画 → 短线条（内部细节/装饰）后画
-    # 效果：先画框架再填充细节，更像真人的绘画顺序
+    # 第二步：按 elements 顺序分组，每组用对应的 drawStrategy 排序
     result = []
     for elem in elements:
         eid = elem["id"]
         elem_paths = [(i, rp) for i, rp in enumerate(raw_paths) if path_elem_map[i] == eid]
-        # 按路径长度降序：外轮廓线最长，优先绘制
-        elem_paths.sort(key=lambda x: x[1]["length"], reverse=True)
-        for i, rp in elem_paths:
+        if not elem_paths:
+            continue
+
+        strategy = elem.get("drawStrategy", "spatial_walk")
+        eb = elem.get("bbox", {"x": 0, "y": 0, "w": 1920, "h": 1080})
+        sorted_paths = _sort_element_paths(elem_paths, strategy, eb)
+
+        for i, rp in sorted_paths:
             result.append({"d": rp["d"], "elementId": eid})
 
     return result

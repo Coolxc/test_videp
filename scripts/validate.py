@@ -125,6 +125,14 @@ def validate_storyboard_schema(sb: dict) -> list[str]:
                     for k in ("x", "y", "w", "h"):
                         if k not in bbox:
                             errors.append(f"{ep}.bbox: '{k}' is required")
+                # drawStrategy 校验
+                VALID_DRAW_STRATEGIES = {
+                    "spatial_walk", "top_down", "bottom_up",
+                    "left_right", "outline_first", "center_out",
+                }
+                ds = elem.get("drawStrategy")
+                if ds and ds not in VALID_DRAW_STRATEGIES:
+                    errors.append(f"{ep}: unknown drawStrategy '{ds}'")
 
     return errors
 

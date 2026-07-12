@@ -94,18 +94,12 @@ def deploy_resources(storyboard_path: str, output_dir: str = None,
 
     # ── 4. Writing hand ──
     hand_dst = remotion_public / "assets" / "writing-hand-small.png"
-    if not hand_dst.exists():
-        hand_src = ENGINE_HAND_PATH
-        if hand_src.exists():
-            import cv2
-            img = cv2.imread(str(hand_src), cv2.IMREAD_UNCHANGED)
-            if img is not None:
-                h, w = img.shape[:2]
-                scale = 600 / max(h, w)
-                new_w, new_h = int(w * scale), int(h * scale)
-                small = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
-                cv2.imwrite(str(hand_dst), small)
-                print(f"  Writing hand: {hand_dst}")
+    hand_src = ENGINE_HAND_PATH
+    if hand_src.exists():
+        shutil.copy2(str(hand_src), str(hand_dst))
+        print(f"  Writing hand: {hand_dst}")
+    elif not hand_dst.exists():
+        print(f"  [WARN] Hand image not found: {hand_src}")
 
     # ── 5. Fonts ──
     fonts_dst = remotion_public / "fonts"

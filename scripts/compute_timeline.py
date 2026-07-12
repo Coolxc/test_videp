@@ -95,6 +95,7 @@ def compute_timeline_entry(
     scene_start_frame: int,
     tts_segments: list[dict] | None = None,
     fps: int = 30,
+    draw_delay: int = 0,
 ) -> dict:
     """
     计算单个场景的时间轴条目。
@@ -127,7 +128,7 @@ def compute_timeline_entry(
 
     # 编排时间轴
     timeline_elements = []
-    current_frame = 0
+    current_frame = draw_delay
     for i, elem in enumerate(elements):
         timeline_elements.append({
             "id": elem["id"],
@@ -171,11 +172,13 @@ def compute_timeline(
         if tts_data and scene_id in tts_data:
             tts_segments = tts_data[scene_id].get("segments")
 
+        delay = TRANSITION_FRAMES if i > 0 else 0
         entry = compute_timeline_entry(
             scene,
             current_frame,
             tts_segments=tts_segments,
             fps=fps,
+            draw_delay=delay,
         )
         scene_entries.append(entry)
 

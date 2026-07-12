@@ -21,13 +21,6 @@
       "issues": 3
     }
   },
-  "timeline": {
-    "done": true,
-    "timestamp": 1783526031.4141285,
-    "data": {
-      "totalFrames": 819
-    }
-  },
   "sfx": {
     "done": true,
     "timestamp": 1783526031.6172485,
@@ -38,19 +31,9 @@
     "timestamp": 1783526917.7829537,
     "data": {}
   },
-  "subtitles": {
-    "done": true,
-    "timestamp": 1783526917.8309221,
-    "data": {}
-  },
   "publish": {
     "done": true,
     "timestamp": 1783526922.93486,
-    "data": {}
-  },
-  "remotion": {
-    "done": true,
-    "timestamp": 1783603335.7310326,
     "data": {}
   }
 }

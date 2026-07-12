@@ -28,6 +28,54 @@ def auto_generate_single_element(scene: dict, img_w: int = 1920, img_h: int = 10
     return scene
 
 
+DRAW_STRATEGY_PROMPT = """你是白板手绘视频的动画导演。
+
+给定一个画面元素的描述，请判断最适合的绘画顺序策略。
+
+可选策略：
+- spatial_walk: 从左上开始，按空间邻近顺序画。适合没有明确结构的通用元素。
+- top_down: 从上往下画。适合人物（先头后身体）、悬挂物、下拉菜单。
+- bottom_up: 从下往上画。适合金字塔、建筑、层级结构、堆叠图。
+- left_right: 从左到右画。适合时间线、流程图、进度条、对比图。
+- outline_first: 先画外轮廓再画内部细节。适合封闭图形（圆形图标、方框图表）。
+- center_out: 从中心向外画。适合放射性图形、大脑、太阳、爆炸效果。
+
+元素描述: {description}
+
+只返回策略名称，不要解释。"""
+
+
+def enrich_draw_strategies(scenes: list[dict]):
+    """为缺少 drawStrategy 的元素自动生成。"""
+    try:
+        from llm_client import call_deepseek
+    except (ImportError, RuntimeError):
+        return  # 无 LLM 时跳过，extract_drawing_paths 会用默认 spatial_walk
+
+    valid = {"spatial_walk", "top_down", "bottom_up",
+             "left_right", "outline_first", "center_out"}
+
+    for scene in scenes:
+        for elem in scene.get("elements", []):
+            if elem.get("drawStrategy"):
+                continue  # 用户已指定，跳过
+
+            desc = elem.get("description", elem.get("id", ""))
+            if not desc:
+                continue
+
+            try:
+                response = call_deepseek(
+                    DRAW_STRATEGY_PROMPT.replace("{description}", desc),
+                    temperature=0.1, max_tokens=20,
+                )
+                strategy = response.strip().lower().replace('"', '').replace("'", "")
+                elem["drawStrategy"] = strategy if strategy in valid else "spatial_walk"
+                print(f"    drawStrategy: {elem['id']} → {elem['drawStrategy']}")
+            except Exception:
+                elem["drawStrategy"] = "spatial_walk"
+
+
 def parse_storyboard(input_path: str, output_path: str = None, image_style: str = "whiteboard",
                      draw_mode: str = "sketch_first", fps: int = 30,
                      pipeline_mode: str = "video_first") -> dict:
@@ -80,6 +128,9 @@ def parse_storyboard(input_path: str, output_path: str = None, image_style: str 
         scene_id = scene.get("id", f"scene{i+1}")
         scene.setdefault("imageName", get_image_filename(scene_id))
         auto_generate_single_element(scene)
+
+    # 自动为元素生成 drawStrategy
+    enrich_draw_strategies(storyboard["scenes"])
 
     # Write output
     if output_path:
